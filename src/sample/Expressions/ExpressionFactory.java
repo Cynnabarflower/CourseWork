@@ -290,7 +290,7 @@ public class ExpressionFactory {
         return null;
     }
 
-    public static  Expression getSeries(Expression expression, int from, int to, int step,  String var) {
+    public static Expression getSeries(Expression expression, int from, int to, int step,  String var, ArrayList<Double> values, String sExpression) {
         if (var.isEmpty()) {
             ArrayList<String> vars = expression.getVars();
             if (vars.size() == 1) {
@@ -306,17 +306,28 @@ public class ExpressionFactory {
                 }
             }
         }
+        if (values == null) {
+            values = new ArrayList<Double>();
+            for (int i = from; i <= to; i++)
+                values.add((double)i);
+            to = to - from;
+            from = 0;
+        } else if (values.size() < from || values.size() < to) {
+            System.out.println("Cant take series");
+            return null;
+        }
         Expression seriesExpression = new Val(0);
         try {
             for (; from <= to; from += step) {
                 Expression iterationExpression = expression.clone();
-                iterationExpression.setValue(var, from);
+                iterationExpression.setValue(var, values.get(from));
                 seriesExpression = new Sum(seriesExpression, iterationExpression.clone());
             }
         } catch (CloneNotSupportedException e) { e.printStackTrace(); };
         return seriesExpression;
     }
+
     public static  Expression getSeries(Expression expression, int depth, String var) {
-        return getSeries(expression, 1, depth, 1, var);
+        return getSeries(expression, 1, depth, 1, var, null, Sum.class);
     }
 }
