@@ -1,5 +1,7 @@
 package sample.Expressions;
 
+import java.util.ArrayList;
+
 public class Pow extends Expression {
     @Override
     public double getVal() {
@@ -7,14 +9,16 @@ public class Pow extends Expression {
     }
 
     @Override
-    public Expression getDerivative() {
-
-        return new Mul(
-                new Pow(leftExpression, new Sub(rightExpression, new Val(1))),
-                new Sum(
-                        new Mul(rightExpression, leftExpression.getDerivative()),
-                        new Mul(leftExpression, new Mul(new Log(new Val(Math.E), leftExpression.getDerivative()), rightExpression))
-                ));
+    public Expression getDerivative(String var) {
+        if (this.contains(var)) {
+                return new Mul(
+                        new Pow(leftExpression, new Sub(rightExpression, new Val(1))),
+                        new Sum(
+                                new Mul(rightExpression, leftExpression.getDerivative(var)),
+                                new Mul(leftExpression, new Mul(new Log(new Val(Math.E), leftExpression), rightExpression.getDerivative(var)))
+                        ));
+            }
+        return new Val(0);
     }
 
     @Override
@@ -23,6 +27,8 @@ public class Pow extends Expression {
     }
 
     public Pow(Expression left, Expression right) {
-        super(0, "Pow", Type.BINARY, 1, left, right);
+        super(0, "Pow", Type.BINARY, ArgumentPosition.LEFT_AND_RIGHT, 1, left, right);
     }
+
+
 }

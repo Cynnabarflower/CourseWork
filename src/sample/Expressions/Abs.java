@@ -1,5 +1,9 @@
 package sample.Expressions;
 
+import javafx.util.Pair;
+
+import java.util.ArrayList;
+
 public class Abs extends Expression {
     @Override
     public double getVal() {
@@ -7,8 +11,11 @@ public class Abs extends Expression {
     }
 
     @Override
-    public Expression getDerivative() {
-        return new Div(new Mul(rightExpression, rightExpression.getDerivative()), new Abs(rightExpression));
+    public Expression getDerivative(String var) {
+            if (this.contains(var)) {
+                return new Div(new Mul(rightExpression, rightExpression.getDerivative(var)), new Abs(rightExpression));
+            }
+        return new Val(0);
     }
 
     @Override
@@ -17,6 +24,6 @@ public class Abs extends Expression {
     }
 
     public Abs(Expression right) {
-        super(0, "Abs", Type.UNARY, 1, null, right);
+        super(0, "Abs", Type.UNARY, ArgumentPosition.RIGHT,1, null, right);
     }
 }

@@ -1,27 +1,24 @@
 package sample.Expressions;
 
-import javafx.util.Pair;
-
 import java.util.ArrayList;
 
-public class Val extends Expression {
+public class Equality extends Expression {
+    public Equality(Expression left, Expression right) {
+        super(0, "Equals", Type.EQUALITY, ArgumentPosition.LEFT_AND_RIGHT, 999, left, right);
+    }
+
     @Override
     public double getVal() {
-        return val;
+        return 0;
     }
 
     @Override
     public Expression getDerivative(String var) {
-        return new Val(0);
+        return null;
     }
 
     @Override
     public Expression getIntegral() {
         return null;
     }
-
-    public Val(double val) {
-        super(val, "Val", Type.VALUE, ArgumentPosition.NONE, 0, null, null);
-    }
-
 }

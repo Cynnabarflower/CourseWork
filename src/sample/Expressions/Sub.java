@@ -8,8 +8,11 @@ public class Sub extends Expression {
     }
 
     @Override
-    public Expression getDerivative() {
-        return new Sub(leftExpression.getDerivative(), rightExpression.getDerivative());
+    public Expression getDerivative(String var) {
+        if (this.contains(var)) {
+            return new Sub(leftExpression.getDerivative(var), rightExpression.getDerivative(var));
+        }
+        return new Val(0);
     }
     @Override
     public Expression getIntegral() {
@@ -17,6 +20,6 @@ public class Sub extends Expression {
     }
 
     public Sub(Expression left, Expression right) {
-        super(0, "Sub", Type.BINARY, 2, left, right);
+        super(0, "Sub", Type.BINARY, ArgumentPosition.LEFT_AND_RIGHT,2, left, right);
     }
 }

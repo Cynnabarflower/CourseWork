@@ -1,5 +1,9 @@
 package sample.Expressions;
 
+import javafx.util.Pair;
+
+import java.util.ArrayList;
+
 public class Div extends Expression {
     @Override
     public double getVal() {
@@ -7,12 +11,15 @@ public class Div extends Expression {
     }
 
     @Override
-    public Expression getDerivative() {
-        return new Div(
-                new Sum(
-                    new Mul(leftExpression.getDerivative(), rightExpression),
-                    new Mul(rightExpression.getDerivative(), leftExpression)),
-                new Mul(rightExpression, rightExpression));
+    public Expression getDerivative(String var) {
+        if (this.contains(var)) {
+                return new Div(
+                        new Sum(
+                                new Mul(leftExpression.getDerivative(var), rightExpression),
+                                new Mul(rightExpression.getDerivative(var), leftExpression)),
+                        new Mul(rightExpression, rightExpression));
+            }
+        return new Val(0);
     }
 
     @Override
@@ -21,6 +28,11 @@ public class Div extends Expression {
     }
 
     public Div(Expression left, Expression right) {
-        super(0, "Div", Type.BINARY, 1, left, right);
+        super(0, "Div", Type.BINARY, ArgumentPosition.LEFT_AND_RIGHT,1, left, right);
+    }
+
+    @Override
+    public String toString() {
+        return leftExpression.toString() + " / " +rightExpression.toString();
     }
 }

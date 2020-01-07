@@ -1,5 +1,9 @@
 package sample.Expressions;
 
+import javafx.util.Pair;
+
+import java.util.ArrayList;
+
 public class Floor extends Expression {
     @Override
     public double getVal() {
@@ -7,8 +11,11 @@ public class Floor extends Expression {
     }
 
     @Override
-    public Expression getDerivative() {
-        return rightExpression.getDerivative();
+    public Expression getDerivative(String var) {
+        if (this.contains(var)) {
+                return rightExpression.getDerivative(var);
+            }
+        return new Val(0);
     }
 
     @Override
@@ -17,6 +24,6 @@ public class Floor extends Expression {
     }
 
     public Floor(Expression right) {
-        super(0, "Floor", Type.UNARY, 1, null,  right);
+        super(0, "Floor", Type.UNARY, ArgumentPosition.RIGHT, 1, null,  right);
     }
 }

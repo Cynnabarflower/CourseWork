@@ -1,5 +1,9 @@
 package sample.Expressions;
 
+import javafx.util.Pair;
+
+import java.util.ArrayList;
+
 public class Bracket extends Expression {
     @Override
     public double getVal() {
@@ -7,7 +11,7 @@ public class Bracket extends Expression {
     }
 
     @Override
-    public Expression getDerivative()  {
+    public Expression getDerivative(String var)  {
         return null;
     }
 
@@ -17,7 +21,7 @@ public class Bracket extends Expression {
     }
 
     public Bracket(boolean opening) {
-        super(0,")", Type.RIGHT_BRACKET, 0, null, null);
+        super(0,")", Type.RIGHT_BRACKET, ArgumentPosition.NONE,0, null, null);
         if (opening) {
             name = "(";
             type = Type.LEFT_BRACKET;
