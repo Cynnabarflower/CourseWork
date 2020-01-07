@@ -290,7 +290,7 @@ public class ExpressionFactory {
         return null;
     }
 
-    public static Expression getSeries(Expression expression, int from, int to, int step,  String var, ArrayList<Double> values, String sExpression) {
+    public static Expression getSeries(Expression expression, int from, int to, int step,  String var, ArrayList<Double> values, Class<Expression> sExpression) {
         if (var.isEmpty()) {
             ArrayList<String> vars = expression.getVars();
             if (vars.size() == 1) {
@@ -321,6 +321,7 @@ public class ExpressionFactory {
             for (; from <= to; from += step) {
                 Expression iterationExpression = expression.clone();
                 iterationExpression.setValue(var, values.get(from));
+                sExpression.
                 seriesExpression = new Sum(seriesExpression, iterationExpression.clone());
             }
         } catch (CloneNotSupportedException e) { e.printStackTrace(); };
