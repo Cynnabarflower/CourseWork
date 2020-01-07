@@ -80,12 +80,15 @@ public class Main extends Application {
                 ArrayList<Expression> expressions = ExpressionFactory.getExpressionTree(in, vars);
                 for (Expression expression : expressions) {
                     if (expression != null) {
-                        expression.setValues(varValues);
+                        Expression series = ExpressionFactory.getSeries(expression, 3, "x");
+                        System.out.println(series);
+                        System.out.println(series.getVal());
+/*                        expression.setValues(varValues);
                         Expression der = expression.getDerivative("x");
                         System.out.println("d/dx: " + der);
                         System.out.println("d/dx(12) " + der.getVal());
                         System.out.println("f(12) " + expression.getVal());
-                        System.out.println();
+                        System.out.println();*/
                     }
                 }
             } catch (Exception e) {

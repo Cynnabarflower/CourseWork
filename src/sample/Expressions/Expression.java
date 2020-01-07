@@ -147,8 +147,10 @@ public abstract class Expression implements Cloneable {
             CloneNotSupportedException
     {
         Expression expression = (Expression) super.clone();
-        expression.leftExpression = leftExpression.clone();
-        expression.rightExpression = rightExpression.clone();
+        if (leftExpression != null)
+            expression.leftExpression = leftExpression.clone();
+        if (rightExpression != null)
+            expression.rightExpression = rightExpression.clone();
         return expression;
     }
 

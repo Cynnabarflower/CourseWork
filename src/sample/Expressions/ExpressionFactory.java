@@ -308,12 +308,15 @@ public class ExpressionFactory {
         }
         Expression seriesExpression = new Val(0);
         try {
-            for (; from < to; from++) {
+            for (; from <= to; from += step) {
                 Expression iterationExpression = expression.clone();
                 iterationExpression.setValue(var, from);
                 seriesExpression = new Sum(seriesExpression, iterationExpression.clone());
             }
         } catch (CloneNotSupportedException e) { e.printStackTrace(); };
         return seriesExpression;
+    }
+    public static  Expression getSeries(Expression expression, int depth, String var) {
+        return getSeries(expression, 1, depth, 1, var);
     }
 }
