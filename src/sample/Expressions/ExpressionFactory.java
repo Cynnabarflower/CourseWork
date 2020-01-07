@@ -328,6 +328,6 @@ public class ExpressionFactory {
     }
 
     public static  Expression getSeries(Expression expression, int depth, String var) {
-        return getSeries(expression, 1, depth, 1, var, null, Sum.class);
+        return getSeries(expression, 1, depth, 1, var, null, "+");
     }
 }
