@@ -24,6 +24,6 @@ public class Floor extends Expression {
     }
 
     public Floor(Expression right) {
-        super(0, "Floor", Type.UNARY, ArgumentPosition.RIGHT, 1, null,  right);
+        super(0, "Floor", Type.FUNCTION, ArgumentPosition.RIGHT, 1, 1,null,  right);
     }
 }

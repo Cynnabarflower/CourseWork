@@ -13,6 +13,7 @@ import javafx.util.Pair;
 import netscape.javascript.JSObject;
 import sample.Expressions.Expression;
 import sample.Expressions.ExpressionFactory;
+import sample.Expressions.Sum;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,13 +23,14 @@ import java.util.Scanner;
 public class Main extends Application {
 
     WebEngine webEngine = null;
+    public String inputExpression = "inputExpression";
+    public String inputExpressionValue = "inputExpressionValue";
+    public String derivativeExpression = "derivativeExpression";
+    public String derivativeExpressionValue = "derivativeExpressionValue";
 
     @Override
     public void start(Stage primaryStage) throws Exception{
-        /*Parent root = FXMLLoader.load(getClass().getResource("sample.fxml"));
-        primaryStage.setTitle("Hello World");
-        primaryStage.setScene(new Scene(root, 300, 275));
-        */
+
         WebView browser = new WebView();
 
         webEngine = browser.getEngine();
@@ -65,14 +67,28 @@ public class Main extends Application {
 
     }
 
+    public void displayOutput(String id, String s) {
+        JSObject windowObject = (JSObject)webEngine.executeScript("window");
+        windowObject.setMember("resultString", s);
+        windowObject.setMember("id", id);
+        webEngine.executeScript("setText(id, resultString)");
+    }
+
     public void readIt(String s) {
         ArrayList<Pair<String, Double>> varValues = new ArrayList<>();
-        varValues.add(new Pair<>("x", (double)12));
+        varValues.add(new Pair<>("x", (double)3));
         ArrayList<String> vars = new ArrayList<>();
         vars.add("x");
-        vars.add("xx");
         vars.add("z");
+        ArrayList<Double> xs = new ArrayList<>();
+        ArrayList<Double> ys = new ArrayList<>();
+        xs.add(1.);
+/*        xs.add(2.);
+        xs.add(3.);*/
 
+/*        ys.add(1.);
+        ys.add(2.);*/
+        ys.add(3.);
         String in = "";
             try {
 
@@ -80,18 +96,26 @@ public class Main extends Application {
                 ArrayList<Expression> expressions = ExpressionFactory.getExpressionTree(in, vars);
                 for (Expression expression : expressions) {
                     if (expression != null) {
-                        Expression series = ExpressionFactory.getSeries(expression, 3, "x");
-                        System.out.println(series);
-                        System.out.println(series.getVal());
-/*                        expression.setValues(varValues);
+                       // expression = expression.optimize();
+                        expression.setValues(varValues);
                         Expression der = expression.getDerivative("x");
+
+                        displayOutput(inputExpression, expression.toString());
+                        displayOutput(inputExpressionValue, ""+expression.getVal());
+                        displayOutput(derivativeExpression, der.toString());
+                        displayOutput(derivativeExpressionValue, ""+der.getVal());
+                        System.out.println(expression);
+                        System.out.println(der);
                         System.out.println("d/dx: " + der);
                         System.out.println("d/dx(12) " + der.getVal());
                         System.out.println("f(12) " + expression.getVal());
-                        System.out.println();*/
+                        System.out.println();
+                    } else {
+                        displayOutput(inputExpression,"mistake in expression");
                     }
                 }
             } catch (Exception e) {
+                displayOutput(inputExpression, e.getMessage());
                 e.printStackTrace();
             }
         }

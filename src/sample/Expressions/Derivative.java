@@ -24,14 +24,8 @@ public class Derivative extends Expression {
         return null;
     }
 
-    @Override
-    public void optimize() {
-
-        super.optimize();
-    }
-
     public Derivative(Expression right) {
-        super(0, "Derivative", Type.DERIVATIVE, ArgumentPosition.LEFT, 0, null, right);
+        super(0, "Derivative", Type.DERIVATIVE, ArgumentPosition.LEFT, 0,1, null, right);
 
     }
 }

@@ -23,16 +23,35 @@ public class Div extends Expression {
     }
 
     @Override
+    public Expression optimize() {
+        Expression expression = super.optimize();
+        if (expression.leftExpression.type == Type.VALUE && expression.leftExpression.val == 0) {
+            return expression.leftExpression;
+        }
+        return this;
+    }
+
+    @Override
     public Expression getIntegral() {
         return null;
     }
 
     public Div(Expression left, Expression right) {
-        super(0, "Div", Type.BINARY, ArgumentPosition.LEFT_AND_RIGHT,1, left, right);
+        super(0, "Div", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT, 1,2, left, right);
     }
 
     @Override
     public String toString() {
-        return leftExpression.toString() + " / " +rightExpression.toString();
+        String sLeft = leftExpression.toString();
+        String sRight = rightExpression.toString();
+        if (leftExpression.priority > priority) {
+            sLeft = "("+sLeft+")";
+        }
+        if (rightExpression.priority > priority) {
+            sRight = "("+sRight+")";
+        }
+        return sLeft + "/" + sRight;
     }
+
+
 }

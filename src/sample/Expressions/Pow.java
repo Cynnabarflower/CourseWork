@@ -27,8 +27,19 @@ public class Pow extends Expression {
     }
 
     public Pow(Expression left, Expression right) {
-        super(0, "Pow", Type.BINARY, ArgumentPosition.LEFT_AND_RIGHT, 1, left, right);
+        super(0, "Pow", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT, 1, 2, left, right);
     }
 
-
+    @Override
+    public String toString() {
+        String sLeft = leftExpression.toString();
+        String sRight = rightExpression.toString();
+        if (leftExpression.priority > priority) {
+            sLeft = "("+sLeft+")";
+        }
+        if (rightExpression.priority > priority) {
+            sRight = "("+sRight+")";
+        }
+        return sLeft + "^" + sRight;
+    }
 }

@@ -21,7 +21,11 @@ public class Val extends Expression {
     }
 
     public Val(double val) {
-        super(val, "Val", Type.VALUE, ArgumentPosition.NONE, 0, null, null);
+        super(val, "Val", Type.VALUE, ArgumentPosition.NONE, 0, 0, null, null);
     }
 
+    @Override
+    public String toString() {
+        return ""+val;
+    }
 }

@@ -24,6 +24,11 @@ public class Abs extends Expression {
     }
 
     public Abs(Expression right) {
-        super(0, "Abs", Type.UNARY, ArgumentPosition.RIGHT,1, null, right);
+        super(0, "Abs", Type.FUNCTION, ArgumentPosition.RIGHT,1,1, null, right);
+    }
+
+    @Override
+    public String toString() {
+        return "|" + rightExpression + "|";
     }
 }

@@ -7,6 +7,7 @@ import java.util.ArrayList;
 public class Log extends Expression {
     @Override
     public double getVal() {
+
         return Math.log(rightExpression.getVal())/Math.log(leftExpression.getVal());
     }
 
@@ -36,10 +37,22 @@ public class Log extends Expression {
     }
 
     public Log(Expression left, Expression right) {
-        super(0, "Log", Type.BINARY, ArgumentPosition.RIGHT_AND_RIGHT, 1, left, right);
+        super(0, "Log", Type.FUNCTION, ArgumentPosition.RIGHT, 1, 2, left, right);
     }
 
     public Log(Expression left) {
-        super(0, "Log", Type.UNARY, ArgumentPosition.RIGHT, 1, left, null);
+        super(0, "Log", Type.FUNCTION, ArgumentPosition.RIGHT, 1, 1, left, null);
+    }
+
+    public Log() {
+        super(0, "Ln", Type.FUNCTION, ArgumentPosition.RIGHT, 1, 1, new Val(Math.E), null);
+    }
+
+    @Override
+    public String toString() {
+        if (name.equals("Log")) {
+            return "Log("+leftExpression+", "+rightExpression+")";
+        }
+        return name +"("+rightExpression+")";
     }
 }

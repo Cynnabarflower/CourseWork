@@ -11,20 +11,18 @@ public abstract class Expression implements Cloneable {
     public enum Type {
         LEFT_BRACKET,
         RIGHT_BRACKET,
-        UNARY,
-        BINARY,
+        FUNCTION,
         VALUE,
         VAR,
         EQUALITY,
-        DERIVATIVE
+        DERIVATIVE,
+        DIVIDER
     }
 
     public enum ArgumentPosition {
         LEFT,
         RIGHT,
         LEFT_AND_RIGHT,
-        LEFT_AND_LEFT,
-        RIGHT_AND_RIGHT,
         NONE
     }
 
@@ -37,23 +35,15 @@ public abstract class Expression implements Cloneable {
     public Expression leftExpression = null;
     public Expression rightExpression = null;
 
-    public Expression(double val, String name, Type type, ArgumentPosition argumentPosition, int priority, Expression left, Expression right) {
+    public Expression(double val, String name, Type type, ArgumentPosition argumentPosition, int priority, int numberOfArgs, Expression left, Expression right) {
         this.val = val;
         this.name = name;
         this.priority = priority;
         this.leftExpression = left;
         this.rightExpression = right;
         this.type = type;
-
-        switch (type) {
-            case VALUE: numberOfArgs = 0; break;
-            case VAR: numberOfArgs = 0; break;
-            case UNARY: numberOfArgs = 1; break;
-            case BINARY: numberOfArgs = 2; break;
-            case LEFT_BRACKET: numberOfArgs = 0; break;
-            case RIGHT_BRACKET: numberOfArgs = 0; break;
-
-        }
+        this.argumentPosition = argumentPosition;
+        this.numberOfArgs = numberOfArgs;
     }
 
 
@@ -61,7 +51,7 @@ public abstract class Expression implements Cloneable {
     public String toString() {
         String left = leftExpression == null ? "" : leftExpression.toString();
         String right = rightExpression == null ? "" : rightExpression.toString();
-        String name = type == Type.VALUE ? ""+val : type == Type.VAR? this.name +"("+val+")" : this.name+"("+left+","+right+")";
+        String name = type == Type.VALUE ? ""+val : type == Type.VAR? this.name : this.name+"("+left+","+right+")";
         return name;
     }
 
@@ -79,7 +69,7 @@ public abstract class Expression implements Cloneable {
                 rightExpression.setValues(varValues);
     }
 
-    public void setValue(String var, double val) {
+    public Expression setValue(String var, double val) {
         if (this.type == Type.VAR) {
                 if (name.equals(var)) {
                     this.val = val;
@@ -89,6 +79,29 @@ public abstract class Expression implements Cloneable {
             leftExpression.setValue(var, val);
         if (rightExpression != null)
             rightExpression.setValue(var, val);
+        return this;
+    }
+
+    public Expression replaceVar(String var) {
+        if (leftExpression != null) {
+            if (this.leftExpression.type == Type.VAR) {
+                if (leftExpression.name.equals(var)) {
+                    this.leftExpression = new Val(leftExpression.val);
+                }
+            } else {
+                leftExpression.replaceVar(var);
+            }
+        }
+        if (rightExpression != null) {
+            if (rightExpression.type == Type.VAR) {
+                if (rightExpression.name.equals(var)) {
+                    this.rightExpression = new Val(rightExpression.val);
+                }
+            } else {
+                rightExpression.replaceVar(var);
+            }
+        }
+        return this;
     }
 
     public void setExpressions(ArrayList<Pair<String, Expression>> varValues) {
@@ -132,11 +145,12 @@ public abstract class Expression implements Cloneable {
         return this.type == type | (leftExpression != null && leftExpression.contains(type)) | (rightExpression != null && rightExpression.contains(type));
     }
 
-    public void optimize() {
+    public Expression optimize() {
         if (leftExpression != null)
-            leftExpression.optimize();
+            leftExpression = leftExpression.optimize();
         if (rightExpression != null)
-            rightExpression.optimize();
+            rightExpression = rightExpression.optimize();
+        return this;
     }
 
     public abstract double getVal();
@@ -155,3 +169,6 @@ public abstract class Expression implements Cloneable {
     }
 
 }
+
+//"((( (( ( (x - 2.0)) * (x - 3.0) ) / (((1.0 * 1.0) * (x - 2.0)) * (x - 3.0)) * 1.0)) + ((((1.0 * (x - 1.0)) * 1.0) * (x - 3.0)) / (((1.0 * (x - 1.0)) * 1.0) * (x - 3.0)) * 2.0)) + ((((1.0 * (x - 1.0)) * (x - 2.0)) * 1.0) / (((1.0 * (x - 1.0)) * (x - 2.0)) * 1.0) * 3.0))"
+      //  ((x-2)(x-3))/

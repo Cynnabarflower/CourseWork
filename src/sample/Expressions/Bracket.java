@@ -21,7 +21,7 @@ public class Bracket extends Expression {
     }
 
     public Bracket(boolean opening) {
-        super(0,")", Type.RIGHT_BRACKET, ArgumentPosition.NONE,0, null, null);
+        super(0,")", Type.RIGHT_BRACKET, ArgumentPosition.NONE,0, 0,null, null);
         if (opening) {
             name = "(";
             type = Type.LEFT_BRACKET;

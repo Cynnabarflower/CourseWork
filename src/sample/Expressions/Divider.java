@@ -1,10 +1,8 @@
 package sample.Expressions;
 
-import java.util.ArrayList;
-
-public class Equality extends Expression {
-    public Equality(Expression left, Expression right) {
-        super(0, "Equals", Type.EQUALITY, ArgumentPosition.LEFT_AND_RIGHT, 999, 2, left, right);
+public class Divider extends Expression {
+    public Divider() {
+        super(0, ",", Type.DIVIDER, ArgumentPosition.NONE, 0, 0,null, null);
     }
 
     @Override

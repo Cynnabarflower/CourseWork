@@ -6,10 +6,10 @@ import java.util.ArrayList;
 
 public class Var extends Expression {
     public Var(double val, String name) {
-        super(val, name, Type.VAR, ArgumentPosition.NONE,0, null, null);
+        super(val, name, Type.VAR, ArgumentPosition.NONE,0,0, null, null);
     }
     public Var(String name) {
-        super(0, name, Type.VAR, ArgumentPosition.NONE,0, null, null);
+        super(0, name, Type.VAR, ArgumentPosition.NONE,0, 0,null, null);
     }
 
     @Override
@@ -28,5 +28,10 @@ public class Var extends Expression {
     @Override
     public Expression getIntegral() {
         return null;
+    }
+
+    @Override
+    public String toString() {
+        return name;
     }
 }

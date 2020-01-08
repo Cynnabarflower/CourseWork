@@ -6,11 +6,11 @@ import java.util.ArrayList;
 
 public class Sum extends Expression {
     public Sum(Expression leftExpression, Expression rightExpression) {
-        super(0, "Sum", Type.BINARY, ArgumentPosition.LEFT_AND_RIGHT, 2, leftExpression, rightExpression);
+        super(0, "Sum", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT, 2, 2, leftExpression, rightExpression);
     }
 
     public Sum() {
-        super(0, "Sum", Type.BINARY, ArgumentPosition.LEFT_AND_RIGHT, 2, null, null);
+        super(0, "Sum", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT, 2, 2,new Val(0), new Val(0));
     }
 
     @Override
@@ -29,5 +29,33 @@ public class Sum extends Expression {
     @Override
     public Expression getIntegral() {
         return null;
+    }
+
+    @Override
+    public Expression optimize() {
+        Expression expression = super.optimize();
+        if (expression.leftExpression.type == Type.VALUE && expression.rightExpression.type == Type.VALUE) {
+            return new Val(expression.leftExpression.val + expression.rightExpression.val);
+        }
+        if (expression.leftExpression.type == Type.VALUE && expression.leftExpression.val == 0) {
+            return expression.rightExpression;
+        }
+        if (expression.rightExpression.type == Type.VALUE && expression.rightExpression.val == 0) {
+            return expression.leftExpression;
+        }
+        return expression;
+    }
+
+    @Override
+    public String toString() {
+        String sLeft = leftExpression.toString();
+        String sRight = rightExpression.toString();
+        if (leftExpression.priority > priority) {
+            sLeft = "("+sLeft+")";
+        }
+        if (rightExpression.priority > priority) {
+            sRight = "("+sRight+")";
+        }
+        return sLeft + "+" + sRight;
     }
 }
