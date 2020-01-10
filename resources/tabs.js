@@ -91,6 +91,30 @@
     //}
   });
 
+
+//  var canvas = document.getElementById("graph_place");
+/*  var ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "green";
+  ctx.fillRect(10, 10, 100, 100);*/
+
+  var config = {
+      type: Phaser.AUTO,
+      parent: 'graph_place',
+      width: 160,
+      height: 90,
+          scale: {
+              mode: Phaser.Scale.WIDTH_CONTROLS_HEIGHT,
+              autoCenter: Phaser.Scale.CENTER_HORIZONTALLY
+          },
+      backgroundColor: '#222288',
+      dom: {
+          createContainer: true
+      },
+  };
+
+  var game = new Phaser.Game(config);
+
 })();
 
   function setText(id, text) {
