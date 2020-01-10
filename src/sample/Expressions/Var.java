@@ -14,7 +14,10 @@ public class Var extends Expression {
 
     @Override
     public double getVal() {
-        return val;
+        if (rightExpression == null) {
+            return val;
+        }
+        return rightExpression.getVal();
     }
 
     @Override

@@ -76,7 +76,7 @@ public class Main extends Application {
 
     public void readIt(String s) {
         ArrayList<Pair<String, Double>> varValues = new ArrayList<>();
-        varValues.add(new Pair<>("x", (double)3));
+        varValues.add(new Pair<>("x", (double) 3));
         ArrayList<String> vars = new ArrayList<>();
         vars.add("x");
         vars.add("z");
@@ -90,34 +90,33 @@ public class Main extends Application {
         ys.add(2.);*/
         ys.add(3.);
         String in = "";
-            try {
+        try {
 
-                in = s;
-                ArrayList<Expression> expressions = ExpressionFactory.getExpressionTree(in, vars);
-                for (Expression expression : expressions) {
-                    if (expression != null) {
-                       // expression = expression.optimize();
-                        expression.setValues(varValues);
-                        Expression der = expression.getDerivative("x");
-
-                        displayOutput(inputExpression, expression.toString());
-                        displayOutput(inputExpressionValue, ""+expression.getVal());
-                        displayOutput(derivativeExpression, der.toString());
-                        displayOutput(derivativeExpressionValue, ""+der.getVal());
-                        System.out.println(expression);
-                        System.out.println(der);
-                        System.out.println("d/dx: " + der);
-                        System.out.println("d/dx(12) " + der.getVal());
-                        System.out.println("f(12) " + expression.getVal());
-                        System.out.println();
-                    } else {
-                        displayOutput(inputExpression,"mistake in expression");
-                    }
+            in = s;
+            ArrayList<Expression> expressions = ExpressionFactory.getExpressionTree(in, vars);
+            for (Expression expression : expressions) {
+                if (expression != null) {
+                    expression.setValues(varValues);
+                    Expression der = expression.getDerivative("x").getOptimized();
+                    der = ExpressionFactory.optimize(der);
+                    displayOutput(inputExpression, expression.toString());
+                    displayOutput(inputExpressionValue, "" + expression.getVal());
+                    displayOutput(derivativeExpression, der.toString());
+                    displayOutput(derivativeExpressionValue, "" + der.getVal());
+                    System.out.println(expression);
+                    System.out.println(der);
+                    System.out.println("d/dx: " + der);
+                    System.out.println("d/dx(12) " + der.getVal());
+                    System.out.println("f(12) " + expression.getVal());
+                    System.out.println();
+                } else {
+                    displayOutput(inputExpression, "mistake in expression");
                 }
-            } catch (Exception e) {
-                displayOutput(inputExpression, e.getMessage());
-                e.printStackTrace();
             }
+        } catch (Exception e) {
+            displayOutput(inputExpression, e.getMessage());
+            e.printStackTrace();
         }
+    }
 }
 // Mul(Pow(12.0,Sub(12.0,1.0)),12))

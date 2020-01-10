@@ -26,6 +26,11 @@ public class Sub extends Expression {
         super(0, "Sub", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT,2,2, new Val(0), new Val(0));
     }
 
+    public Sub(Expression right) {
+        super(0, "Sub", Type.FUNCTION, ArgumentPosition.RIGHT,2,1, new Val(0), null);
+    }
+
+
     @Override
     public String toString() {
         String sLeft = leftExpression.toString();
@@ -37,5 +42,32 @@ public class Sub extends Expression {
             sRight = "("+sRight+")";
         }
         return sLeft + "-" + sRight;
+    }
+
+    @Override
+    public boolean fillExpressions() {
+        if (leftExpression == null) {
+            leftExpression = new Val(0);
+        }
+        if (rightExpression == null) {
+            rightExpression = new Val(0);
+        }
+        return true;
+    }
+
+    @Override
+    public Expression getOptimized() throws CloneNotSupportedException {
+        Expression expression = super.getOptimized();
+        if (expression.type == Type.VALUE)
+            return expression;
+        if (expression.rightExpression.type == Type.VALUE) {
+            if (expression.rightExpression.val == 0) {
+                return expression.leftExpression;
+            }
+            if (expression.leftExpression.type == Type.VALUE) {
+                return new Val(expression.leftExpression.val - expression.rightExpression.val);
+            }
+        }
+        return expression;
     }
 }
