@@ -1,10 +1,13 @@
 package sample.Expressions;
 
 import javafx.util.Pair;
+import sample.Main;
 import sample.WrongExpressionException;
 
 import java.awt.*;
+import java.lang.reflect.Array;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ExpressionFactory {
 
@@ -361,38 +364,61 @@ public class ExpressionFactory {
         return mainExpression;
     }
 */
-
     public static Expression getPolynom(ArrayList<Expression> points) {
+        boolean varIsUsed = false;
+        String varsToUse[] = {"x", "t", "p", "y", "u", "polynom_argument"};
+        ArrayList<String> usedVars = new ArrayList<>();
+        for (Expression point : points) {
+            usedVars.addAll(point.getVars());
+        }
+        usedVars = (ArrayList<String>) usedVars.stream().distinct().collect(Collectors.toList());
+        for (int i = 0; i < varsToUse.length; i++) {
+            varIsUsed = false;
+            for (String usedVar : usedVars) {
+                if (usedVar.equals(varsToUse[i])) {
+                    varIsUsed = true;
+                    break;
+                }
+            }
+            if (!varIsUsed) {
+                return getPolynom(points, varsToUse[i]);
+            }
+        }
+        Main.showException("Consider using different var names");
+        return null;
+    }
+
+    public static Expression getPolynom(ArrayList<Expression> points, String polynomVar) {
         Expression mainExpression = new Val(0);
-        Expression expression = new Sub(new Var("x"), new Var("t"));
-        Expression expression2 = new Sub(new Var("x"), new Var("t"));
+        Expression expression = new Sub(new Var(polynomVar), new Var("polynomPar"));
+        Expression expression2 = new Sub(new Var(polynomVar), new Var("polynomPar"));
         try {
             for (int i = 0; i < points.size(); i++) {
                 ArrayList<Expression> copyPoints = new ArrayList<>();
                 for (int j = 0; j < i; j++) {
                     copyPoints.add(points.get(j).leftExpression.clone());
                 }
-                Expression series = getSeries(expression, "t", copyPoints, "*");
+                Expression series = getSeries(expression, "polynomPar", copyPoints, "*");
                 copyPoints = new ArrayList<>();
                 for (int j = i + 1; j < points.size(); j++) {
                     copyPoints.add(points.get(j).leftExpression.clone());
                 }
-                series = new Mul(series, getSeries(expression, "t", copyPoints, "*"));
+                series = new Mul(series, getSeries(expression, "polynomPar", copyPoints, "*"));
 
                 copyPoints = new ArrayList<>();
                 for (int j = 0; j < i; j++) {
                     copyPoints.add(points.get(j).leftExpression.clone());
                 }
-                Expression series2 = getSeries(expression2, "t", copyPoints, "*");
+                Expression series2 = getSeries(expression2, "polynomPar", copyPoints, "*");
                 copyPoints = new ArrayList<>();
                 for (int j = i + 1; j < points.size(); j++) {
                     copyPoints.add(points.get(j).leftExpression.clone());
                 }
-                series2 = new Mul(series2, getSeries(expression2, "t", copyPoints, "*"));
+                series2 = new Mul(series2, getSeries(expression2, "polynomPar", copyPoints, "*"));
 
 
-                series2.setExpression("x", points.get(i).leftExpression);
-                series2.replaceVar("x");
+                series2.setExpression(polynomVar, points.get(i).leftExpression);
+                series2.replaceVar(polynomVar);
                 mainExpression = new Sum(mainExpression, new Mul(new Div(series, series2), points.get(i).rightExpression));
             }
         } catch (CloneNotSupportedException e) {
@@ -424,7 +450,7 @@ public class ExpressionFactory {
             to = to - from;
             from = 0;
         } else if (values.size() < from || values.size() < to) {
-            System.out.println("Cant take series");
+            Main.showException("Error when making series");
             return null;
         }
         Expression seriesExpression = new Val(0);
@@ -467,5 +493,16 @@ public class ExpressionFactory {
         } catch (CloneNotSupportedException e) {
             return null;
         }
+    }
+
+    public static ArrayList<Pair<Double, Double>> getPoints(Expression expression, String varName, double from, double to, int size) {
+        double leng = to - from;
+        double step = leng / (size-1);
+        ArrayList<Pair<Double, Double>> points = new ArrayList<>();
+        for (double i = 0; i < size; i++) {
+            points.add(new Pair<>(from, expression.setValue(varName, from).getVal()));
+            from += step;
+        }
+        return points;
     }
 }

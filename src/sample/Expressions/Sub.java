@@ -27,7 +27,7 @@ public class Sub extends Expression {
     }
 
     public Sub(Expression right) {
-        super(0, "Sub", Type.FUNCTION, ArgumentPosition.RIGHT,2,1, new Val(0), null);
+        super(0, "Sub", Type.FUNCTION, ArgumentPosition.RIGHT,0,1, new Val(0), null);
     }
 
 
@@ -37,6 +37,8 @@ public class Sub extends Expression {
         String sRight = rightExpression.toString();
         if (leftExpression.priority > priority) {
             sLeft = "("+sLeft+")";
+        } else if (leftExpression.type == Type.VALUE && leftExpression.val == 0) {
+            sLeft = "";
         }
         if (rightExpression.priority > priority) {
             sRight = "("+sRight+")";

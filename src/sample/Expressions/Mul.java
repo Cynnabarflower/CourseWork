@@ -59,7 +59,6 @@ public class Mul extends Expression {
             expression.rightExpression.setRightExpression(new Mul(expression.rightExpression.rightExpression, rightExpression));
             return expression.rightExpression;
         }
-
         return expression;
     }
 
