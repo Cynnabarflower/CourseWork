@@ -14,7 +14,7 @@ public class Equality extends Expression {
 
     @Override
     public Expression getDerivative(String var) {
-        return null;
+        return new Val(0);
     }
 
     @Override

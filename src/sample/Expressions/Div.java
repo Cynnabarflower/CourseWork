@@ -10,7 +10,7 @@ public class Div extends Expression {
     public Expression getDerivative(String var) {
         if (this.contains(var)) {
                 return new Div(
-                        new Sum(
+                        new Sub(
                                 new Mul(leftExpression.getDerivative(var), rightExpression),
                                 new Mul(rightExpression.getDerivative(var), leftExpression)),
                         new Mul(rightExpression, rightExpression));
@@ -42,7 +42,7 @@ public class Div extends Expression {
     }
 
     public Div(Expression left, Expression right) {
-        super(0, "Div", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT, 1,2, left, right);
+        super(0, "Div", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT, 20,2, left, right);
     }
 
     @Override

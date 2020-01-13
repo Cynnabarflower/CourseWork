@@ -7,10 +7,10 @@ public class Mul extends Expression {
     }
 
     public Mul(Expression leftExpression, Expression rightExpression) {
-        super(0, "Mul", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT ,1, 2, leftExpression, rightExpression);
+        super(0, "Mul", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT ,20, 2, leftExpression, rightExpression);
     }
     public Mul() {
-        super(0, "Mul", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT, 1, 2,new Val(1), null);
+        super(0, "Mul", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT, 20, 2,new Val(1), null);
     }
 
     @Override

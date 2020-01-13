@@ -32,17 +32,22 @@
 
             <table width="100%" cellspacing="0" cellpadding="5">
               <tr>
-                <td width="200" valign="top">
+                <td style = 'width="50%" valign="top" '>
                   <expressions id="expressions"></expressions>
                   <div> <input type="submit" id = "addExpression" value = "+" onclick = "addExpression()"></div>
                   <p><output id = "inputExpression"></output>  (<output id = "inputExpressionValue">0</output>)</p>
                   <p><output id = "derivativeExpression"></output>  (<output id = "derivativeExpressionValue">0</output>)</p>
 
                 </td>
-                <td valign="top">
+                <td id = 'vars_place' style = 'width="20%" valign="top"'>
+
+                </td>
+                <td style = 'width="500px" valign="top"'>
 
                   <div id = "graph_place"> </div>
-                </td></tr></table>
+                </td>
+              </tr>
+            </table>
 
 
             <script src="app.js"></script>

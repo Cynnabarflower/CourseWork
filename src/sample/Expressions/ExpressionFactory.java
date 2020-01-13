@@ -1,7 +1,7 @@
 package sample.Expressions;
 
-import javafx.util.Pair;
 import sample.Main;
+import sample.Pair;
 import sample.WrongExpressionException;
 
 import java.awt.*;
@@ -44,13 +44,19 @@ public class ExpressionFactory {
                 if (expression.type == Expression.Type.VALUE || expression.type == Expression.Type.VAR) {
                     postfixExpressions.add(expression);
                 } else if (expression.numberOfArgs == 1) {
-                    stack.push(expression);
+                    if (expression.argumentPosition == Expression.ArgumentPosition.LEFT) {
+                        postfixExpressions.add(expression);
+                    } else if (expression.argumentPosition == Expression.ArgumentPosition.RIGHT) {
+                        stack.push(expression);
+                    } else {
+                        throw new WrongExpressionException("Wrong argument position or number of arguments for "+expression);
+                    }
                 } else if (expression.type == Expression.Type.LEFT_BRACKET) {
                     stack.push(expression);
                 } else if (expression.type == Expression.Type.RIGHT_BRACKET) {
                     while (!stack.empty()) {
                         Expression temp = stack.pop();
-                        if (temp.name.equals("(")) {
+                        if (temp.type == Expression.Type.LEFT_BRACKET) {
                             if (!stack.empty() &&
                                     stack.peek().argumentPosition == Expression.ArgumentPosition.RIGHT) {
                                 postfixExpressions.add(stack.pop());
@@ -58,8 +64,10 @@ public class ExpressionFactory {
                             break;
                         } else {
                             postfixExpressions.add(temp);
+
                         }
                     }
+                   // postfixExpressions.add(new Bracket());
                 } else if (expression.numberOfArgs == 2) {
                     if (expression.argumentPosition == Expression.ArgumentPosition.LEFT_AND_RIGHT) {
                         while (!stack.empty()) {
@@ -105,7 +113,7 @@ public class ExpressionFactory {
                     } else if (current.type == Expression.Type.VALUE || current.type == Expression.Type.VAR) {
                         stack.push(current);
                     } else if (current.numberOfArgs == 1) {
-                            current.setRightExpression(stack.pop());
+                        current.setRightExpression(stack.pop());
                         stack.push(current);
                     } else if (current.type == Expression.Type.EQUALITY) {
                         Expression right = stack.pop();
@@ -140,13 +148,11 @@ public class ExpressionFactory {
            } else if (!stack.empty()) {
                throw new WrongExpressionException("Probably operator is missed");
            }
-            vars = expressionToAdd.getVars();
 
             if (expressionToAdd.type == Expression.Type.EQUALITY) {
-                for (String varName : vars)
-                    if (expressionToAdd.leftExpression.name.equals(varName)) {
-                        throw new WrongExpressionException("Duplicate var assignment: "+varName);
-                    }
+                if (expressionToAdd.rightExpression.contains(expressionToAdd.leftExpression.name)) {
+                    throw new WrongExpressionException("Duplicate var assignment: "+expressionToAdd.leftExpression.name);
+                }
                 expressions.add(0, expressionToAdd);
             } else {
                 if (expressionToAdd.contains(Expression.Type.EQUALITY)) {
@@ -156,19 +162,19 @@ public class ExpressionFactory {
             }
         }
 
-/*        ArrayList<Pair<String, Expression>> expressionsToSet = new ArrayList<>();
+        ArrayList<Pair<String, Expression>> expressionsToSet = new ArrayList<>();
         for (Expression expression : expressions) {
-            for (Expression varExpression : expressions) {
-                if (varExpression.type == Expression.Type.EQUALITY && expression.contains(varExpression.leftExpression.name)) {
-                    expressionsToSet.add(new Pair<>(varExpression.name, expression));
-                }
+            if (expression.type == Expression.Type.EQUALITY) {
+                expressionsToSet.add(new Pair<String, Expression>(expression.leftExpression.name, expression.rightExpression));
+
+            } else {
+                    expression.setExpressions(expressionsToSet);
             }
-            expression.setExpressions(expressionsToSet);
-            expressionsToSet = new ArrayList<>();
-        }*/
+        }
 
         return expressions;
     }
+
 
     private static ArrayList<Expression> getExpressionArray(String s, ArrayList<String> vars) {
         if (vars != null) {
@@ -498,10 +504,20 @@ public class ExpressionFactory {
     public static ArrayList<Pair<Double, Double>> getPoints(Expression expression, String varName, double from, double to, int size) {
         double leng = to - from;
         double step = leng / (size-1);
+        Pair<Double, Double> pair;
         ArrayList<Pair<Double, Double>> points = new ArrayList<>();
         for (double i = 0; i < size; i++) {
-            points.add(new Pair<>(from, expression.setValue(varName, from).getVal()));
+            pair = new Pair<>(from, expression.setValue(varName, from).getVal());
+            points.add(pair);
             from += step;
+        }
+        return points;
+    }
+    public static ArrayList<Pair<Double, Double>> getPoints(ArrayList<Expression> expressions, String varName, double from, double to, int size) {
+        ArrayList<Pair<Double, Double>> points = new ArrayList<>();
+        for (Expression expression : expressions) {
+            points.addAll(getPoints(expression, varName, from, to, size));
+            points.add(new Pair<>(Double.NaN, Double.NaN));
         }
         return points;
     }

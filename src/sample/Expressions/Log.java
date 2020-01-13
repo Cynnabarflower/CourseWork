@@ -39,15 +39,15 @@ public class Log extends Expression {
     }
 
     public Log(Expression left, Expression right) {
-        super(0, "Log", Type.FUNCTION, ArgumentPosition.RIGHT, 1, 2, left, right);
+        super(0, "Log", Type.FUNCTION, ArgumentPosition.RIGHT, 10, 2, left, right);
     }
 
     public Log(Expression right) {
-        super(0, "Ln", Type.FUNCTION, ArgumentPosition.RIGHT, 1, 1, new Val(Math.E), right);
+        super(0, "Ln", Type.FUNCTION, ArgumentPosition.RIGHT, 10, 1, new Val(Math.E), right);
     }
 
     public Log() {
-        super(0, "Ln", Type.FUNCTION, ArgumentPosition.RIGHT, 1, 1, new Val(Math.E), null);
+        super(0, "Ln", Type.FUNCTION, ArgumentPosition.RIGHT, 10, 1, new Val(Math.E), null);
     }
 
     @Override

@@ -10,6 +10,9 @@ var maxY = -9999999;
 var graphs;
 var context;
 var expressionNumber;
+var vars;
+
+
 
 function addColorPicker(expressionNumber) {
     var pk = new Piklor("#color-picker" + expressionNumber, [
@@ -21,9 +24,7 @@ function addColorPicker(expressionNumber) {
            "#7FFFD4",
            "#8A2BE2",
            "#556B2F",
-           "#808080",
-           "#000000"
-
+           "#808080"
 
         ], {
             open: "#picker-wrapper" + expressionNumber + " #color-button" + expressionNumber
@@ -33,18 +34,20 @@ function addColorPicker(expressionNumber) {
 
     pk.colorChosen(function(col) {
         wrapperEl.style.backgroundColor = col;
-        graphs.forEach(function(graph, index, array) {
-            if (graph.id == id) {
-                graph.lineColor = Number("0x" + col.replace("#", ""));
-            }
+        app.printLog(id);
+        app.printLog(graphs.size)
+        obj = graphs.get(id);
+        if (!!obj) {
+            obj.lineColor = Number("0x" + col.replace("#", ""));
+            graphs.set(id, obj)
+        }
 
-        }, this);
     });
 
     for (let i = 0; i < pk.colors.length; i++) {
         var colorChosen = true;
-        for (let j = 0; j < graphs.length; j++) {
-            if (graphs[j].lineColor == "0x" + pk.colors[i].replace("#", "")) {
+        for (var [key, obj] of graphs) {
+            if (obj.lineColor == "0x" + pk.colors[i].replace("#", "")) {
                 colorChosen = false;
                 break;
             }
@@ -63,11 +66,11 @@ function addColorPicker(expressionNumber) {
 var config = {
     type: Phaser.AUTO,
     parent: 'graph_place',
-    width: 640,
-    height: 480,
+    width: 480,
+    height: 320,
     scale: {
-        mode: Phaser.Scale.WIDTH_CONTROLS_HEIGHT,
-        autoCenter: Phaser.Scale.CENTER_HORIZONTALLY
+        mode: Phaser.Scale.NONE,
+        autoCenter: Phaser.Scale.NO_CENTER
     },
     backgroundColor: '#ffffff',
     dom: {
@@ -87,7 +90,8 @@ function create() {
     context = this;
     graphWidth = 100;
     graphHeight = 100;
-    graphs = [];
+    graphs = new Map();
+    vars = new Map();
     text = this.add.text(0, 0, 'text123');
     graphics = this.add.graphics();
 
@@ -103,25 +107,36 @@ function create() {
 
     // cubicBezierTo: function (x, y, control1X, control1Y, control2X, control2Y)
     path.cubicBezierTo(200, 20, 67, 43, 88, 10);
+
+
+
+
     addExpression();
+
 }
 
 function update() {
     graphics.clear();
 
-
-
     this.cameras.main.setScroll((minX + maxX - this.cameras.main.width) / 2, (-(minY + maxY) - this.cameras.main.height) / 2);
     var zoomY = this.cameras.main.height / ((maxY - minY) * 1.1 + 5)
     var zoomX = this.cameras.main.width / ((maxX - minX) * 1.1 + 5);
     this.cameras.main.setZoom(Math.min(zoomX, zoomY));
-    graphs.forEach(function(graph, index, array) {
+
+    graphics.lineStyle(2 / this.cameras.main.zoom, 0x111111, 0.5);
+/*    app.printLog(""+this.cameras.main.worldView.x+" "+this.cameras.main.worldView.y+"  "+this.cameras.main.worldView.width+" "+this.cameras.main.worldView.height);*/
+    graphics.strokeLineShape(new Phaser.Geom.Line(this.cameras.main.worldView.x, 0, minX+this.cameras.main.worldView.width, 0));
+    graphics.strokeLineShape(new Phaser.Geom.Line(0, this.cameras.main.worldView.y, 0, this.cameras.main.worldView.y+this.cameras.main.worldView.height));
+    graphics.strokeLineShape(new Phaser.Geom.Line(1, 1, 1, -1));
+    graphics.strokeLineShape(new Phaser.Geom.Line(1, -1, -1, -1));
+
+    for (var [id, graph] of graphs) {
         graphics.fillStyle( graph.lineColor, 1);
         graph.path.getPoint(graph.follower.t, graph.follower.vec);
         graphics.lineStyle(3 / this.cameras.main.zoom, graph.lineColor, 1);
         graph.path.draw(graphics);
         graphics.fillCircle(graph.follower.vec.x, graph.follower.vec.y, 3 / this.cameras.main.zoom);
-    }, this);
+    };
     setText("derivativeExpressionValue", '' + minX + ' ' + minY + '   ' + '\n' + (maxX) + ' ' + (maxY) + '\n cam: ' + Math.min(zoomX, zoomY) + '  ' + (-(minY + maxY) - this.cameras.main.height) / 2);
 }
 
@@ -145,27 +160,41 @@ function drawGraph(points, id) {
         var maxX = 0;
         var minY = 0;
         var maxY = 0;
-        path = new Phaser.Curves.Path(points.get(0).getKey(), -points.get(0).getValue());
-        if (points.get(0).getKey() < minX)
-            minX = points.get(0).getKey();
-        if (points.get(0).getKey() > maxX)
-            maxX = points.get(0).getKey();
-        if (points.get(0).getValue() < minY)
-            minY = points.get(0).getValue();
-        if (points.get(0).getValue() > maxY)
-            maxY = points.get(0).getValue();
+        while (points.size() > 0 && Number.isNaN(points.get(0).value)) {
+           points.remove(0);
+        }
+
+        path = new Phaser.Curves.Path(points.get(0).key, -points.get(0).value);
+        if (points.get(0).key < minX)
+            minX = points.get(0).key;
+        if (points.get(0).key > maxX)
+            maxX = points.get(0).key;
+        if (points.get(0).value < minY)
+            minY = points.get(0).value;
+        if (points.get(0).value > maxY)
+            maxY = points.get(0).value;
         var textToSet = '';
-        textToSet += '' + points.get(0).getKey() + ',' + (points.get(0).getValue()) + '; ';
+        textToSet += '' + points.get(0).key + ',' + (points.get(0).value) + '; ';
+        var gotNaN = false;
         for (var i = 1; i < points.size(); i++) {
-            path.lineTo(points.get(i).getKey(), -points.get(i).getValue());
-            if (points.get(i).getKey() < minX)
-                minX = points.get(i).getKey();
-            if (points.get(i).getKey() > maxX)
-                maxX = points.get(i).getKey();
-            if (points.get(i).getValue() < minY)
-                minY = points.get(i).getValue();
-            if (points.get(i).getValue() > maxY)
-                maxY = points.get(i).getValue();
+        if (Number.isNaN(points.get(i).value)) {
+            gotNaN = true;
+            continue;
+        } else if (gotNaN) {
+            path.moveTo(points.get(i).key, -points.get(i).value);
+            gotNaN = false;
+        } else {
+            gotNaN = false;
+            path.lineTo(points.get(i).key, -points.get(i).value);
+            }
+            if (points.get(i).key < minX)
+                minX = points.get(i).key;
+            if (points.get(i).key > maxX)
+                maxX = points.get(i).key;
+            if (points.get(i).value < minY)
+                minY = points.get(i).value;
+            if (points.get(i).value > maxY)
+                maxY = points.get(i).value;
             // textToSet += ''+points.get(i).getKey()+','+(points.get(i).getValue())+'; ';
         }
 
@@ -182,63 +211,57 @@ function drawGraph(points, id) {
 
         this.minX = this.minY = 99999999;
         this.maxX = this.maxY = -9999999;
-        var graphFound = false;
-        graphs.forEach(function(graph, index, array) {
-            if (graph.id == id) {
-                graph.path = path;
-                graph.follower = follower;
-                graph.minX = minX;
-                graph.minY = minY;
-                graph.maxX = maxX;
-                graph.maxY = maxY;
-                graphFound = true;
-            }
-            this.minX = Math.min(graph.minX, this.minX);
-            this.minY = Math.min(graph.minY, this.minY);
-            this.maxX = Math.max(graph.maxX, this.maxX);
-            this.maxY = Math.max(graph.maxY, this.maxY);
-        }, this);
-        if (!graphFound) {
-            graphs.push({
-                lineColor: rgb2hex(document.getElementById("color-button" + id).style.backgroundColor),
+        var obj = graphs.get(id);
+        var lineColor = 0x000000;
+        if (!!obj) {
+        app.printLog(obj);
+            lineColor = obj.lineColor;
+        }
+        else {
+            lineColor = rgb2hex(document.getElementById("color-button"+id).style.backgroundColor)
+        }
+        graphs.set(id,
+        {
                 path: path,
                 follower: follower,
-                id: id,
                 minX: minX,
                 minY: minY,
                 maxX: maxX,
-                maxY: maxY
-            });
-            this.minX = Math.min(minX, this.minX);
-            this.minY = Math.min(minY, this.minY);
-            this.maxX = Math.max(maxX, this.maxX);
-            this.maxY = Math.max(maxY, this.maxY);
-        }
-        // setText('derivativeExpression', textToSet);
+                maxY: maxY,
+                lineColor: lineColor
+        })
+
+        updateMinMax();
     }
 }
 
 function clicked(element) {
-    app.readIt(+element.id.replace("textInput", ""), element.value);
+    var varValues = "";
+    for (var [name, value] of vars) {
+        varValues += name + ( value.chosen ? "="+value.value : "" ) + ";"
+        app.printLog(name+ " "+ value.value+" "+value.chosen);
+    }
+    app.printLog(varValues);
+    app.readIt(element.id.replace("textInput", ""), element.value,  varValues);
 }
 
 function remove(id) {
     var child = document.getElementById("expression" + id);
     child.parentNode.removeChild(child);
+    if (graphs.delete(id)) {
+        updateMinMax();
+    }
+}
+
+function updateMinMax() {
     this.minX = this.minY = 99999999;
     this.maxX = this.maxY = -9999999;
-    for (let j = 0; j < graphs.length; j++) {
-        if (graphs[j].id == id) {
-            graphs.splice(j, 1);
-            j--;
-            continue;
-        }
-        this.minX = Math.min(graphs[j].minX, this.minX);
-        this.minY = Math.min(graphs[j].minY, this.minY);
-        this.maxX = Math.max(graphs[j].maxX, this.maxX);
-        this.maxY = Math.max(graphs[j].maxY, this.maxY);
+    for (var [key, obj] of graphs) {
+        this.minX = Math.min(this.minX, obj.minX);
+        this.minY = Math.min(this.minY, obj.minY);
+        this.maxX = Math.max(this.maxX, obj.maxX);
+        this.maxY = Math.max(this.maxY, obj.maxY);
     }
-
 }
 
 function addExpression() {
@@ -248,22 +271,81 @@ function addExpression() {
     var buttonName = "buttonSubmit" + expressionNumber;
     let div = document.createElement('div');
     div.className = "expressionClass";
-    div.innerHTML = "<expression id = \"expression" + expressionNumber + "\"><tr><input type=\"text\" size=\"40\" id = \"" + textName + "\"> <input type=\"submit\" id = \"" + buttonName + "\" value=\"Ок\" onclick=\"clicked(" + textName + ")\" style=\"display: none;\">" +
-        "<class=\"picker-wrapper\" id = \"picker-wrapper" + expressionNumber + "\"><button class=\"color-button\" id = \"color-button" + expressionNumber + "\"></button><div class=\"color-picker\" id = \"color-picker" + expressionNumber + "\"></div>" +
-        "<button class=\"remove-button\" id = \"remove-button" + expressionNumber + "\" onclick=\"remove(" + (expressionNumber) + ")\"></button></tr></expression>";
+    div.innerHTML = "<expression id = \"expression" + expressionNumber + "\"><tr><input type=\"text\" size=\"30\" id = \"" + textName + "\" style = 'font-size: 16px'> <input type=\"submit\" id = \"" + buttonName + "\" value=\"Ок\" onclick=\"clicked(" + textName + ")\" style=\"display: none;\">" +
+        "<class=\"picker-wrapper\" id = \"picker-wrapper" + expressionNumber + "\"><button class=\"color-button\" id = \"color-button" + expressionNumber + "\"></button>" +
+        "<button class=\"remove-button\" id = \"remove-button" + expressionNumber + "\" onclick=\"remove(" + (expressionNumber) + ")\"></button></tr></expression>"+
+        "<div class=\"color-picker\" id = \"color-picker" + expressionNumber + "\"></div>";
     expressions.append(div);
 
     document.getElementById(textName).addEventListener("keyup", function(event) {
-        //if (event.keyCode === 13) {
+        if (event.keyCode === 13) {
         event.preventDefault();
         document.getElementById(buttonName).click(textName);
-        // }
+         }
     });
-
 
     addColorPicker(expressionNumber);
 
-
-
     expressionNumber++;
+}
+
+function updateVars(id, expression) {
+/*    if (expression == null) {
+        expression = document.getElementById("textInput"+id).value;
+    }
+    var varsFromId = app.getVars(expression);
+    var graph = graphs.get(id);
+    for (var [key, obj] of graph.vars) {
+
+    }*/
+}
+
+function varChanged(name) {
+    var value = document.getElementById("var_"+name).value;
+        vars.set(name, {
+        value: value,
+        chosen: value != ""
+        });
+            document.getElementById("checkBox_"+name).checked = value != "";
+            app.printLog(""+i+"/"+vars.length+") "+value);
+}
+
+function varChosen(name){
+
+            var obj = vars.get(name);
+            vars.set(name, {
+                value : obj.value,
+                chosen: document.getElementById("checkBox_"+name).checked
+            })
+            app.printLog(document.getElementById("checkBox_"+name).checked);
+}
+
+
+function addVar(name, id) {
+
+    if (document.getElementById('var_'+name) == null) {
+            let div = document.createElement('div');
+            div.className = "varClass";
+            div.innerHTML = "<input class='checkBox' type='checkbox' id=checkBox_"+name+" onchange = varChosen('"+name+"') >"+name+" = <input type=\"text\" size=\"10\" name = " + name + " id = \"var_" + name + "\">";
+            vars_place.append(div);
+
+            document.getElementById("var_"+name).addEventListener("keyup", function(event) {
+                event.preventDefault();
+                varChanged(name);
+            });
+
+            vars.set(name, {value: 0, chosen: false, ids: new Map([ [id, 1] ] ) });
+    } else {
+        var obj = vars.get(name);
+        if (!!obj) {
+            vars.set(name, {
+                value : obj.value,
+                chosen : obj.chosen,
+                ids : obj.ids.set(id, 1)
+            })
+        } else {
+           vars.set(name, {value: 0, chosen: false, ids: new Map([ [id, 1] ])});
+        }
+    }
+
 }

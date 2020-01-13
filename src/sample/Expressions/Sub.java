@@ -20,10 +20,10 @@ public class Sub extends Expression {
     }
 
     public Sub(Expression left, Expression right) {
-        super(0, "Sub", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT,2,2, left, right);
+        super(0, "Sub", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT,30,2, left, right);
     }
     public Sub() {
-        super(0, "Sub", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT,2,2, new Val(0), new Val(0));
+        super(0, "Sub", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT,30,2, new Val(0), new Val(0));
     }
 
     public Sub(Expression right) {

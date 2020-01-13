@@ -1,6 +1,6 @@
 package sample.Expressions;
 
-import javafx.util.Pair;
+import sample.Pair;
 
 import java.util.ArrayList;
 import java.util.stream.Collectors;
@@ -62,8 +62,8 @@ public abstract class Expression implements Cloneable {
     public void setValues(ArrayList<Pair<String, Double>> varValues) {
         if (this.type == Type.VAR) {
             for (Pair<String, Double> pair : varValues)
-                if (name.equals(pair.getKey())) {
-                    val = pair.getValue();
+                if (name.equals(pair.key)) {
+                    val = pair.value;
                     break;
                 }
         }
@@ -105,8 +105,8 @@ public abstract class Expression implements Cloneable {
     public void setExpressions(ArrayList<Pair<String, Expression>> varValues) {
         if (this.type == Type.VAR) {
             for (Pair<String, Expression> pair : varValues)
-                if (name.equals(pair.getKey())) {
-                    rightExpression = pair.getValue();
+                if (name.equals(pair.key)) {
+                    rightExpression = pair.value;
                     break;
                 }
         } else {

@@ -2,11 +2,11 @@ package sample.Expressions;
 
 public class Sum extends Expression {
     public Sum(Expression leftExpression, Expression rightExpression) {
-        super(0, "Sum", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT, 2, 2, leftExpression, rightExpression);
+        super(0, "Sum", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT, 30, 2, leftExpression, rightExpression);
     }
 
     public Sum() {
-        super(0, "Sum", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT, 2, 2,new Val(0), new Val(0));
+        super(0, "Sum", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT, 30, 2,new Val(0), new Val(0));
     }
 
     @Override
