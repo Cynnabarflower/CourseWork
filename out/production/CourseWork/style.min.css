@@ -62,7 +62,7 @@ img{
 .o-container{
 	margin:0 auto;
 	padding:0 12px;
-	max-width:960px
+	max-width:80%
 }
 @media all and (min-width:480px){
 	.o-container{
@@ -280,4 +280,64 @@ img{
 	#carbonads{
 		display:none
 }
+}
+
+
+
+.color-picker {
+    background: rgba(255, 255, 255, 0.75);
+    padding: 10px;
+    border: 1px solid rgba(203, 203, 203, 0.6);
+    border-radius: 2px;
+}
+
+.color-picker > div {
+    width: 40px;
+    display: inline-block;
+    height: 40px;
+    margin: 5px;
+    border-radius: 20%;
+    opacity: 0.7;
+}
+.color-picker > div {
+    width: 40px;
+    display: inline-block;
+    height: 40px;
+    margin: 5px;
+    border-radius: 20%;
+    opacity: 0.7;
+}
+
+.picker-wrapper {
+    padding: 20px;
+}
+
+.color-picker > div:hover {
+    opacity: 1;
+}
+.color-button {
+    border-radius: 100%;
+        border: none;
+        color: white;
+        padding: 16px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+         vertical-align: middle;
+}
+.color-button :hover {
+    border-radius: 20%;
+}
+.remove-button {
+    background-color: #880000;
+    border-radius: 100%;
+        border: none;
+        color: white;
+        padding: 16px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+         vertical-align: middle;
 }

@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="style.min.css">
   <link rel="icon" type="image/png" href="/favicon.png">
   <script src="phaser.min.js"></script>
-
+  <script src="piklor.js"></script>
 </head>
 <body>
   
@@ -29,14 +29,22 @@
         </div>
         <div class="c-tab is-active">
           <div class="c-tab__content">
-            <h2>Enter your subsequence</h2>
 
-            <expressions id="expressions"></expressions>
-            <div> <input type="submit" id = "addExpression" value = "+" onclick = "addExpression()"></div>
-            <p><output id = "inputExpression"></output>  (<output id = "inputExpressionValue">0</output>)</p>
-            <p><output id = "derivativeExpression"></output>  (<output id = "derivativeExpressionValue">0</output>)</p>
+            <table width="100%" cellspacing="0" cellpadding="5">
+              <tr>
+                <td width="200" valign="top">
+                  <expressions id="expressions"></expressions>
+                  <div> <input type="submit" id = "addExpression" value = "+" onclick = "addExpression()"></div>
+                  <p><output id = "inputExpression"></output>  (<output id = "inputExpressionValue">0</output>)</p>
+                  <p><output id = "derivativeExpression"></output>  (<output id = "derivativeExpressionValue">0</output>)</p>
 
-            <div id = "graph_place"> </div>
+                </td>
+                <td valign="top">
+
+                  <div id = "graph_place"> </div>
+                </td></tr></table>
+
+
             <script src="app.js"></script>
           </div>
         </div>
@@ -46,6 +54,7 @@
             <p>Books ipsum dolor sit amet, consectetur adipisicing elit. Ipsam quo minus voluptate unde tempore eveniet consequuntur in, quod animi libero rem similique pariatur quos, et eum nisi ducimus, architecto voluptatibus!</p>
             <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Iusto aspernatur natus dolorem fuga cumque optio saepe corrupti earum. Ipsam quaerat asperiores similique omnis excepturi temporibus ab eum magnam ipsa, odio.</p>
           </div>
+
         </div>
       </div>
     </div>

@@ -26,12 +26,9 @@ public class Main extends Application {
     public static String inputExpressionValue = "inputExpressionValue";
     public static String derivativeExpression = "derivativeExpression";
     public static String derivativeExpressionValue = "derivativeExpressionValue";
-    private static Queue<String> colors;
-    private HashMap<Integer, Pair<Expression, String>> expressions;
 
     @Override
     public void start(Stage primaryStage) throws Exception{
-        expressions = new HashMap<>();
         WebView browser = new WebView();
 
         webEngine = browser.getEngine();
@@ -47,17 +44,20 @@ public class Main extends Application {
 
         primaryStage.setTitle("JavaFX WebView (o7planning.org)");
         primaryStage.setScene(scene);
-        primaryStage.setWidth(450);
+        primaryStage.setWidth(800);
         primaryStage.setHeight(600);
 
         primaryStage.show();
     }
 
+    public void printLog(String s) {
+        System.out.println("js: "+s);
+    }
+
 
     public static void main(String[] args) {
         String[] colorsArr = {"0xff0000", "0x00ff00", "0x0000ff", "0xffff00", "0x00ffff", "0xff00ff", "0x000000"};
-        colors = new ArrayDeque<>();
-        colors.addAll(Arrays.asList(colorsArr));
+
         launch(args);
 /*        File file = new File("functions.cfg");
         if (!file.exists()) {
@@ -82,18 +82,16 @@ public class Main extends Application {
         displayOutput(inputExpression, s);
     }
 
-    public void displayGraph(ArrayList<Pair<Double, Double>> points, String color, int id) {
+    public void displayGraph(ArrayList<Pair<Double, Double>> points, int id) {
         JSObject windowObject = (JSObject)webEngine.executeScript("window");
         windowObject.setMember("graphPoints", points);
-        windowObject.setMember("graphColor", color);
         windowObject.setMember("graphId", id);
-        webEngine.executeScript("drawGraph(graphPoints, graphColor, graphId)");
+        webEngine.executeScript("drawGraph(graphPoints, graphId)");
        // windowObject.call("drawGraph", points);
     }
 
 
     public void readIt(int id, String s) {
-        Pair<Expression, String> expressionAndColor = expressions.get(id);
 
         ArrayList<Pair<String, Double>> varValues = new ArrayList<>();
         varValues.add(new Pair<>("x", (double) 3));
@@ -130,11 +128,8 @@ public class Main extends Application {
                     System.out.println("f(12) " + expression.getVal());
                     System.out.println();
 
-                    displayGraph(ExpressionFactory.getPoints(expression,"x", -10, 10, 100),expressionAndColor == null ? colors.peek() : expressionAndColor.getValue(), id);
-                    this.expressions.put(id, new Pair<Expression, String>(expression, expressionAndColor == null ? colors.peek() : expressionAndColor.getValue()));
-                    if (expressionAndColor == null) {
-                        colors.add(colors.poll());
-                    }
+                    displayGraph(ExpressionFactory.getPoints(expression,"x", -30, 30, 300), id);
+
                 } else {
                     displayOutput(inputExpression, "mistake in expression");
                 }
