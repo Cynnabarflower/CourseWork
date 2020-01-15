@@ -1,5 +1,6 @@
 package sample;
 
+import com.alibaba.fastjson.JSONObject;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
@@ -57,9 +58,14 @@ public class Main extends Application {
 
     public static void main(String[] args) {
         String[] colorsArr = {"0xff0000", "0x00ff00", "0x0000ff", "0xffff00", "0x00ffff", "0xff00ff", "0x000000"};
+       // new MyServer();
+        String args2[] = {"C:\\Users\\Dmitry\\IdeaProjects\\CourseWork\\resources"};
 
         launch(args);
-/*        File file = new File("functions.cfg");
+        new http.Server(args2);
+
+/*  new http.Server(args2);
+  File file = new File("functions.cfg");
         if (!file.exists()) {
             try {
                 file.createNewFile();
@@ -72,10 +78,10 @@ public class Main extends Application {
     }
 
     public static void displayOutput(String id, String s) {
-        JSObject windowObject = (JSObject)webEngine.executeScript("window");
+/*        JSObject windowObject = (JSObject)webEngine.executeScript("window");
         windowObject.setMember("resultString", s);
         windowObject.setMember("id", id);
-        webEngine.executeScript("setText(id, resultString)");
+        webEngine.executeScript("setText(id, resultString)");*/
     }
 
 
@@ -92,11 +98,11 @@ public class Main extends Application {
     }
 
     public static void addVars(ArrayList<String> vars) {
-        JSObject windowObject = (JSObject)webEngine.executeScript("window");
+/*        JSObject windowObject = (JSObject)webEngine.executeScript("window");
         for (String var : vars) {
             windowObject.setMember("newVar", var);
             webEngine.executeScript("addVar(newVar)");
-        }
+        }*/
     }
 
     public static ArrayList<String> getVars(String s) {
@@ -112,7 +118,7 @@ public class Main extends Application {
     }
 
 
-    public void readIt(int id, String s, String varNames) {
+    public static JSONObject readIt(int id, String s, String varNames) {
 
         ArrayList<String> vars = new ArrayList<>();
         ArrayList<Pair<String, Expression>> varValues = new ArrayList<>();
@@ -131,7 +137,7 @@ public class Main extends Application {
                 }
             } catch (WrongExpressionException e) {
                 showException("Incorrect var values: "+e.getMessage());
-                return;
+                return null;
             }
             }
 
@@ -162,14 +168,20 @@ public class Main extends Application {
                 }
                 varsFromExpressions = ((ArrayList<String>) varsFromExpressions.stream().distinct().collect(Collectors.toList()));
                 String varName = varsFromExpressions.contains("x") ? "x" : varsFromExpressions.contains("y") ? "y" : varsFromExpressions.size() > 0 ? varsFromExpressions.get(0) : "";
-                displayGraph(ExpressionFactory.getPoints(expressions,varName, -30, 30, 300), id);
+                ArrayList<Pair<Double, Double>> points = ExpressionFactory.getPoints(expressions,varName, -30, 30, 10);
                 varsFromExpressions.removeAll(vars);
-                addVars(varsFromExpressions);
+               // addVars(varsFromExpressions);
+                Map<String, Object> map = new HashMap<>();
+                map.put("points", points.toArray());
+                map.put("expression", expression.toString());
+                map.put("vars", expression.getVars().toArray());
+                return new JSONObject(map);
             }
         } catch (Exception e) {
             displayOutput(inputExpression, e.getMessage());
             e.printStackTrace();
         }
+        return null;
     }
 }
 // Mul(Pow(12.0,Sub(12.0,1.0)),12))

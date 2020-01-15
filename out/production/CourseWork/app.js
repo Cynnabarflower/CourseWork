@@ -34,8 +34,8 @@ function addColorPicker(expressionNumber) {
 
     pk.colorChosen(function(col) {
         wrapperEl.style.backgroundColor = col;
-        app.printLog(id);
-        app.printLog(graphs.size)
+         console.log(id);
+         console.log(graphs.size)
         obj = graphs.get(id);
         if (!!obj) {
             obj.lineColor = Number("0x" + col.replace("#", ""));
@@ -151,7 +151,7 @@ function rgb2hex(rgb) {
 
 function drawGraph(points, id) {
 
-    if (points.size() > 0) {
+    if (points.length > 0) {
         follower = {
             t: 0,
             vec: new Phaser.Math.Vector2()
@@ -160,41 +160,41 @@ function drawGraph(points, id) {
         var maxX = 0;
         var minY = 0;
         var maxY = 0;
-        while (points.size() > 0 && Number.isNaN(points.get(0).value)) {
-           points.remove(0);
+        while (points.length > 0 && !!!(points[0].value)) {
+           points.shift();
         }
 
-        path = new Phaser.Curves.Path(points.get(0).key, -points.get(0).value);
-        if (points.get(0).key < minX)
-            minX = points.get(0).key;
-        if (points.get(0).key > maxX)
-            maxX = points.get(0).key;
-        if (points.get(0).value < minY)
-            minY = points.get(0).value;
-        if (points.get(0).value > maxY)
-            maxY = points.get(0).value;
+        path = new Phaser.Curves.Path(points[0].key, -points[0].value);
+        if (points[0].key < minX)
+            minX = points[0].key;
+        if (points[0].key > maxX)
+            maxX = points[0].key;
+        if (points[0].value < minY)
+            minY = points[0].value;
+        if (points[0].value > maxY)
+            maxY = points[0].value;
         var textToSet = '';
-        textToSet += '' + points.get(0).key + ',' + (points.get(0).value) + '; ';
+        textToSet += '' + points[0].key + ',' + (points[0].value) + '; ';
         var gotNaN = false;
-        for (var i = 1; i < points.size(); i++) {
-        if (Number.isNaN(points.get(i).value)) {
+        for (var i = 1; i < points.length; i++) {
+        if (!!!(points[i].value)) {
             gotNaN = true;
             continue;
         } else if (gotNaN) {
-            path.moveTo(points.get(i).key, -points.get(i).value);
+            path.moveTo(points[i].key, -points[i].value);
             gotNaN = false;
         } else {
             gotNaN = false;
-            path.lineTo(points.get(i).key, -points.get(i).value);
+            path.lineTo(points[i].key, -points[i].value);
             }
-            if (points.get(i).key < minX)
-                minX = points.get(i).key;
-            if (points.get(i).key > maxX)
-                maxX = points.get(i).key;
-            if (points.get(i).value < minY)
-                minY = points.get(i).value;
-            if (points.get(i).value > maxY)
-                maxY = points.get(i).value;
+            if (points[i].key < minX)
+                minX = points[i].key;
+            if (points[i].key > maxX)
+                maxX = points[i].key;
+            if (points[i].value < minY)
+                minY = points[i].value;
+            if (points[i].value > maxY)
+                maxY = points[i].value;
             // textToSet += ''+points.get(i).getKey()+','+(points.get(i).getValue())+'; ';
         }
 
@@ -214,7 +214,7 @@ function drawGraph(points, id) {
         var obj = graphs.get(id);
         var lineColor = 0x000000;
         if (!!obj) {
-        app.printLog(obj);
+         console.log(obj);
             lineColor = obj.lineColor;
         }
         else {
@@ -239,10 +239,32 @@ function clicked(element) {
     var varValues = "";
     for (var [name, value] of vars) {
         varValues += name + ( value.chosen ? "="+value.value : "" ) + ";"
-        app.printLog(name+ " "+ value.value+" "+value.chosen);
+         console.log(name+ " "+ value.value+" "+value.chosen);
     }
-    app.printLog(varValues);
-    app.readIt(element.id.replace("textInput", ""), element.value,  varValues);
+     console.log(varValues);
+    readIt(element.id.replace("textInput", ""), element.value,  varValues);
+}
+
+function readIt(id, element, varValues) {
+    var url = "http://localhost:8000/";
+    var options = {id : id, element : element, varValues : varValues}
+
+    fetch(url, {
+                 method: 'POST',
+                 headers: {
+                   'Content-Type': 'application/json;charset=utf-8'
+                 },
+                 body: JSON.stringify(options)
+                 })
+      .then(response => response.json())
+      .then(response =>
+        {
+            console.log(response)
+            drawGraph(response.points, id);
+            for (var i = 0; i < response.vars.length; i++)
+                addVar(response.vars[i], id);
+        }
+      );
 }
 
 function remove(id) {
@@ -266,14 +288,13 @@ function updateMinMax() {
 
 function addExpression() {
 
-
     var textName = "textInput" + expressionNumber;
     var buttonName = "buttonSubmit" + expressionNumber;
     let div = document.createElement('div');
     div.className = "expressionClass";
     div.innerHTML = "<expression id = \"expression" + expressionNumber + "\"><tr><input type=\"text\" size=\"30\" id = \"" + textName + "\" style = 'font-size: 16px'> <input type=\"submit\" id = \"" + buttonName + "\" value=\"Ок\" onclick=\"clicked(" + textName + ")\" style=\"display: none;\">" +
         "<class=\"picker-wrapper\" id = \"picker-wrapper" + expressionNumber + "\"><button class=\"color-button\" id = \"color-button" + expressionNumber + "\"></button>" +
-        "<button class=\"remove-button\" id = \"remove-button" + expressionNumber + "\" onclick=\"remove(" + (expressionNumber) + ")\"></button></tr></expression>"+
+        "<button class=\"remove-button\" id = \"remove-button" + expressionNumber + "\" onclick=\"remove(\'" + (expressionNumber) + "\')\"></button></tr></expression>"+
         "<div class=\"color-picker\" id = \"color-picker" + expressionNumber + "\"></div>";
     expressions.append(div);
 
@@ -283,6 +304,8 @@ function addExpression() {
         document.getElementById(buttonName).click(textName);
          }
     });
+
+
 
     addColorPicker(expressionNumber);
 
@@ -306,8 +329,7 @@ function varChanged(name) {
         value: value,
         chosen: value != ""
         });
-            document.getElementById("checkBox_"+name).checked = value != "";
-            app.printLog(""+i+"/"+vars.length+") "+value);
+        document.getElementById("checkBox_"+name).checked = value != "";
 }
 
 function varChosen(name){
@@ -317,7 +339,7 @@ function varChosen(name){
                 value : obj.value,
                 chosen: document.getElementById("checkBox_"+name).checked
             })
-            app.printLog(document.getElementById("checkBox_"+name).checked);
+             console.log(document.getElementById("checkBox_"+name).checked);
 }
 
 
