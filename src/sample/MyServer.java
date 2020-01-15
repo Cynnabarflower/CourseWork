@@ -39,7 +39,7 @@ public class MyServer {
         public void run() {
             try {
                 readInputHeaders();
-                String s = new String(getClass().getResource("/index.html").openStream().readAllBytes());
+                String s = new String(getClass().getResource("/site/index.html").openStream().readAllBytes());
 
                 writeResponse(s);
                //writeResponse("<html><body><h1>Hello from Habrahabr</h1></body></html>");

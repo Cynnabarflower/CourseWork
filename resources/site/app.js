@@ -108,11 +108,28 @@ function create() {
     // cubicBezierTo: function (x, y, control1X, control1Y, control2X, control2Y)
     path.cubicBezierTo(200, 20, 67, 43, 88, 10);
 
-
-
+    getDefaultExpressions();
 
     addExpression();
 
+}
+
+function getDefaultExpressions() {
+    var url = "http://localhost:8000/defaultExpressions.txt";
+
+    fetch(url, {
+                 method: 'GET',
+                 headers: {
+                   'Content-Type': 'application/json;charset=utf-8'
+                 }
+                 })
+      .then(response => response.text())
+      .then(response =>
+        {
+            console.log(response)
+            document.getElementById("defaultExpressions").value = response;
+        }
+      );
 }
 
 function update() {

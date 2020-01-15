@@ -2,9 +2,7 @@ package sample;
 
 import com.alibaba.fastjson.JSONObject;
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.layout.VBox;
 import javafx.scene.web.WebEngine;
@@ -13,9 +11,7 @@ import javafx.stage.Stage;
 import netscape.javascript.JSObject;
 import sample.Expressions.Expression;
 import sample.Expressions.ExpressionFactory;
-import sample.Expressions.Sum;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -27,13 +23,14 @@ public class Main extends Application {
     public static String inputExpressionValue = "inputExpressionValue";
     public static String derivativeExpression = "derivativeExpression";
     public static String derivativeExpressionValue = "derivativeExpressionValue";
+    private static Map<String, Expression> expressionsFromFile;
 
     @Override
     public void start(Stage primaryStage) throws Exception{
         WebView browser = new WebView();
 
         webEngine = browser.getEngine();
-        webEngine.load(getClass().getResource("/index.html").toExternalForm());
+        webEngine.load(getClass().getResource("/site/index.html").toExternalForm());
         JSObject windowObject = (JSObject) browser.getEngine().executeScript("window");
         windowObject.setMember("app", this);
         VBox root = new VBox();
@@ -58,11 +55,14 @@ public class Main extends Application {
 
     public static void main(String[] args) {
         String[] colorsArr = {"0xff0000", "0x00ff00", "0x0000ff", "0xffff00", "0x00ffff", "0xff00ff", "0x000000"};
+        new Main();
        // new MyServer();
+/*        readExpressionsFromFile();
         String args2[] = {"C:\\Users\\Dmitry\\IdeaProjects\\CourseWork\\resources"};
 
-        launch(args);
-        new http.Server(args2);
+       // launch(args);
+
+        new http.Server(args2);*/
 
 /*  new http.Server(args2);
   File file = new File("functions.cfg");
@@ -74,6 +74,34 @@ public class Main extends Application {
             }
         }*/
 
+
+    }
+
+    public Main() {
+        readExpressionsFromFile();
+        String index = "C:\\Users\\Dmitry\\IdeaProjects\\CourseWork\\resources";
+        new http.Server(index, 8000);
+    }
+
+    public void readExpressionsFromFile() {
+        expressionsFromFile = new HashMap<>();
+        String textExpressions[] = {};
+        try {
+            textExpressions = new String(getClass().getResource("/defaultExpressions.txt").openStream().readAllBytes()).split("[;\n\r]+");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        for (String textExpression : textExpressions) {
+            try {
+                ArrayList <Expression> expressions =  ExpressionFactory.getExpressionTree(textExpression, null);
+                for (Expression expression : expressions)
+                    if (expression.type == Expression.Type.EQUALITY && expression.leftExpression.type == Expression.Type.VAR) {
+                        expressionsFromFile.put(expression.leftExpression.name, expression.rightExpression);
+                    }
+            } catch (WrongExpressionException e) {
+                e.printStackTrace();
+            }
+        }
 
     }
 

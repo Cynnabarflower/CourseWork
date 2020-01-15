@@ -277,9 +277,16 @@ public class ExpressionFactory {
 
     private static void addExpression(ArrayList<Expression> expressions, Expression expression) {
         if (!expressions.isEmpty())
-        { if ((expressions.get(expressions.size()-1).type == Expression.Type.VALUE || expressions.get(expressions.size()-1).type == Expression.Type.RIGHT_BRACKET || expressions.get(expressions.size()-1).type == Expression.Type.VAR) &&
+        {
+            if ((expressions.get(expressions.size()-1).type == Expression.Type.VALUE || expressions.get(expressions.size()-1).type == Expression.Type.RIGHT_BRACKET || expressions.get(expressions.size()-1).type == Expression.Type.VAR) &&
                 (expression.type == Expression.Type.VALUE || expression.type == Expression.Type.VAR || expression.type == Expression.Type.LEFT_BRACKET)) {
-                expressions.add(new Mul());
+                if (expression.type == Expression.Type.VAR && expressions.get(expressions.size()-1).type == Expression.Type.VAR) {
+                    Expression lastExpression =  expressions.get(expressions.size()-1);
+                    lastExpression.name = lastExpression.name + expression.name;
+                    expressions.set(expressions.size()-1, lastExpression);
+                    return;
+                }
+                    expressions.add(new Mul());
             }
         }
         expressions.add(expression);

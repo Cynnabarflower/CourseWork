@@ -2,7 +2,6 @@ package sample;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.parser.ParserConfig;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
@@ -62,20 +61,32 @@ public class StaticHandler implements HttpHandler
         if (httpExchange.getRequestMethod().equals("POST")) {
             JSONObject jsonObject = (JSONObject) JSON.parse(sb.toString());
             //Main.readIt(Integer.parseInt((String) jsonObject.get("id")), (String) jsonObject.get("element"), (String) jsonObject.get("varValues"));
-            jsonObject = Main.readIt(Integer.parseInt((String) jsonObject.get("id")), (String) jsonObject.get("element"), (String) jsonObject.get("varValues"));
+            if (jsonObject.containsKey("id") && jsonObject.containsKey("element") && jsonObject.containsKey("varValues")) {
+                jsonObject = Main.readIt(Integer.parseInt((String) jsonObject.get("id")), (String) jsonObject.get("element"), (String) jsonObject.get("varValues"));
+            }
             byte[] bytes = jsonObject.toJSONString().getBytes();
             httpExchange.getResponseHeaders().set("Content-Type", "text/javascript");
             httpExchange.sendResponseHeaders(200, bytes.length);
             httpExchange.getResponseBody().write(bytes);
             httpExchange.getResponseBody().close();
             return;
+        } else if (httpExchange.getRequestMethod().equals("GET")) {
+            if (requestedUri.toString().equals("/defaultExpressions.txt")) {
+                byte[] bytes = getClass().getResource("/defaultExpressions.txt").openStream().readAllBytes();
+                httpExchange.getResponseHeaders().set("Content-Type", "text/javascript");
+                httpExchange.sendResponseHeaders(200, bytes.length);
+                httpExchange.getResponseBody().write(bytes);
+                httpExchange.getResponseBody().close();
+                return;
+            }
         }
         String path = httpExchange.getRequestURI().getPath();
         try {
             path = path.substring(1);
             path = path.replaceAll("//", "/");
             if (path.length() == 0)
-                path = "index.html";
+                path = "site/index.html";
+            else path = "site/"+path;
 
             boolean fromFile = new File(pathToRoot + path).exists();
             InputStream in = fromFile ? new FileInputStream(pathToRoot + path)
