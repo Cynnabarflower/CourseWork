@@ -82,14 +82,14 @@
   window.tabs = tabs;
 
 
-  var input = document.getElementById("textInput");
 
-  input.addEventListener("keyup", function(event) {
-   // if (event.keyCode === 13) {
-      event.preventDefault();
-      document.getElementById("buttonSubmit").click();
-    //}
-  });
+
+//  var canvas = document.getElementById("graph_place");
+/*  var ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "green";
+  ctx.fillRect(10, 10, 100, 100);*/
+
 
 })();
 

@@ -1,27 +1,7 @@
 .carbon-poweredby,em,i{
 	font-style:italic
 }
-@font-face{
-	font-family:Oxygen;
-	font-style:normal;
-	font-weight:300;
-	src:url(../fonts/oxygen/oxygen-v5-latin-300.eot);
-	src:local("Oxygen Light"),local("Oxygen-Light"),url(../fonts/oxygen/oxygen-v5-latin-300.eot?#iefix) format("embedded-opentype"),url(../fonts/oxygen/oxygen-v5-latin-300.woff2) format("woff2"),url(../fonts/oxygen/oxygen-v5-latin-300.woff) format("woff"),url(../fonts/oxygen/oxygen-v5-latin-300.ttf) format("truetype"),url(../fonts/oxygen/oxygen-v5-latin-300.svg#Oxygen) format("svg")
-}
-@font-face{
-	font-family:Oxygen;
-	font-style:normal;
-	font-weight:400;
-	src:url(../fonts/oxygen/oxygen-v5-latin-regular.eot);
-	src:local("Oxygen"),local("Oxygen-Regular"),url(../fonts/oxygen/oxygen-v5-latin-regular.eot?#iefix) format("embedded-opentype"),url(../fonts/oxygen/oxygen-v5-latin-regular.woff2) format("woff2"),url(../fonts/oxygen/oxygen-v5-latin-regular.woff) format("woff"),url(../fonts/oxygen/oxygen-v5-latin-regular.ttf) format("truetype"),url(../fonts/oxygen/oxygen-v5-latin-regular.svg#Oxygen) format("svg")
-}
-@font-face{
-	font-family:Oxygen;
-	font-style:normal;
-	font-weight:700;
-	src:url(../fonts/oxygen/oxygen-v5-latin-700.eot);
-	src:local("Oxygen Bold"),local("Oxygen-Bold"),url(../fonts/oxygen/oxygen-v5-latin-700.eot?#iefix) format("embedded-opentype"),url(../fonts/oxygen/oxygen-v5-latin-700.woff2) format("woff2"),url(../fonts/oxygen/oxygen-v5-latin-700.woff) format("woff"),url(../fonts/oxygen/oxygen-v5-latin-700.ttf) format("truetype"),url(../fonts/oxygen/oxygen-v5-latin-700.svg#Oxygen) format("svg")
-}
+
 *,::after,::before{
 	box-sizing:inherit
 }
@@ -40,11 +20,13 @@ body{
 	font-size:14px;
 	line-height:1.8
 }
+
 h1,h2,h3,h4,h5,h6{
 	color:#3b3b3b;
 	font-weight:700;
 	line-height:1.2
 }
+
 a{
 	color:#dc446e;
 	text-decoration:none
@@ -61,17 +43,17 @@ img{
 }
 .o-container{
 	margin:0 auto;
-	padding:0 12px;
-	max-width:960px
+	padding:0 0px;
+	max-width:100%
 }
 @media all and (min-width:480px){
 	.o-container{
-		padding:0 24px
+		padding:0 0px
 }
 }
 @media all and (min-width:720px){
 	.o-container{
-		padding:0 48px
+		padding:0 0px
 }
 }
 .o-header{
@@ -111,21 +93,7 @@ img{
 		font-size:42px
 }
 }
-.o-section{
-	margin-bottom:24px
-}
-.o-section:last-child{
-	margin-bottom:0
-}
-@media all and (min-width:720px){
-	.o-section{
-		margin-bottom:48px
-}
-}
-.o-sub-nav{
-	margin:0;
-	padding:0
-}
+
 .o-sub-nav__items{
 	display:-webkit-box;
 	display:-webkit-flex;
@@ -140,11 +108,13 @@ img{
 	justify-content:center;
 	list-style:none;
 	margin:0;
-	padding:0
+	padding:0;
+	height: 100%;
 }
 .o-sub-nav__item{
 	margin:0;
 	padding:4px
+	height: 100%;
 }
 .o-sub-nav__link{
 	display:block;
@@ -157,16 +127,6 @@ img{
 	background-color:#dc446e
 }
 
-@media all and (min-width:480px){
-	.o-footer{
-		padding:24px 0
-}
-}
-@media all and (min-width:720px){
-	.o-footer{
-		padding:48px 0
-}
-}
 .c-tabs-nav{
 	display:-webkit-box;
 	display:-webkit-flex;
@@ -240,44 +200,70 @@ img{
 .c-tabs.no-js .c-tab:last-child{
 	margin-bottom:0
 }
-.carbon-img,.carbon-wrap{
-	margin:0 0 4px;
-	display:block
+
+.color-picker {
+    background: rgba(255, 255, 255, 0.75);
+    padding: 10px;
+    border: 1px solid rgba(203, 203, 203, 0.6);
+    border-radius: 2px;
 }
-#carbonads{
-	position:fixed;
-	bottom:12px;
-	right:12px;
-	z-index:1000;
-	padding:24px 12px 12px;
-	width:154px;
-	background-color:#fff;
-	line-height:1.1;
-	border:1px solid #e7e7e7
+
+.color-picker > div {
+    width: 40px;
+    display: inline-block;
+    height: 40px;
+    margin: 5px;
+    border-radius: 20%;
+    opacity: 0.7;
 }
-.carbon-img{
-	padding:0;
-	width:130px;
-	height:100px
+.color-picker > div {
+    width: 40px;
+    display: inline-block;
+    height: 40px;
+    margin: 5px;
+    border-radius: 20%;
+    opacity: 0.7;
 }
-.carbon-text{
-	color:#818181;
-	font-size:12px
+
+.picker-wrapper {
+    padding: 20px;
 }
-.carbon-poweredby{
-	font-size:10px
+
+.color-picker > div:hover {
+    opacity: 1;
 }
-.carbonad__close{
-	display:block;
-	position:absolute;
-	top:0;
-	left:12px;
-	height:24px;
-	font-size:11px;
-	line-height:24px
+.color-button {
+display: table-cell;
+    border-radius: 100%;
+        border: none;
+        color: white;
+        padding: 16px;
+        margin : 2px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        vertical-align: middle;
 }
-@media all and (max-width:660px){
-	#carbonads{
-		display:none
+.color-button :hover {
+    border-radius: 20%;
 }
+.remove-button {
+display: table-cell;
+    background-color: #880000;
+    border-radius: 100%;
+        border: none;
+        color: white;
+        margin: 2px;
+        padding: 16px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+         vertical-align: middle;
+}
+
+.checkBox {
+        display: table-cell;
+        vertical-align: middle;
 }

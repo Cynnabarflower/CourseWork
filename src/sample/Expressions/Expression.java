@@ -1,12 +1,11 @@
 package sample.Expressions;
 
-import javafx.util.Pair;
+import sample.Pair;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.stream.Collectors;
 
-public abstract class Expression implements Cloneable {
+public class Expression implements Cloneable {
 
     public enum Type {
         LEFT_BRACKET,
@@ -34,18 +33,23 @@ public abstract class Expression implements Cloneable {
     public int numberOfArgs;
     public Expression leftExpression = null;
     public Expression rightExpression = null;
+    public Expression parent = null;
 
-    public Expression(double val, String name, Type type, ArgumentPosition argumentPosition, int priority, int numberOfArgs, Expression left, Expression right) {
+    public Expression(double val, String name, Type type, ArgumentPosition argumentPosition, int priority, int numberOfArgs, Expression left, Expression right, Expression parent) {
         this.val = val;
         this.name = name;
         this.priority = priority;
-        this.leftExpression = left;
-        this.rightExpression = right;
+        setLeftExpression(left);
+        setRightExpression(right);
         this.type = type;
         this.argumentPosition = argumentPosition;
         this.numberOfArgs = numberOfArgs;
+        this.parent = parent;
     }
 
+    public Expression(double val, String name, Type type, ArgumentPosition argumentPosition, int priority, int numberOfArgs, Expression left, Expression right) {
+        this(val, name, type, argumentPosition, priority, numberOfArgs, left, right, null);
+    }
 
     @Override
     public String toString() {
@@ -58,8 +62,8 @@ public abstract class Expression implements Cloneable {
     public void setValues(ArrayList<Pair<String, Double>> varValues) {
         if (this.type == Type.VAR) {
             for (Pair<String, Double> pair : varValues)
-                if (name.equals(pair.getKey())) {
-                    val = pair.getValue();
+                if (name.equals(pair.key)) {
+                    val = pair.value;
                     break;
                 }
         }
@@ -83,23 +87,17 @@ public abstract class Expression implements Cloneable {
     }
 
     public Expression replaceVar(String var) {
-        if (leftExpression != null) {
-            if (this.leftExpression.type == Type.VAR) {
-                if (leftExpression.name.equals(var)) {
-                    this.leftExpression = new Val(leftExpression.val);
-                }
+        if (parent != null && type == Type.VAR && name.equals(var)) {
+            if (rightExpression == null) {
+                return new Val(val);
             } else {
-                leftExpression.replaceVar(var);
+                return rightExpression.replaceVar(var);
             }
-        }
-        if (rightExpression != null) {
-            if (rightExpression.type == Type.VAR) {
-                if (rightExpression.name.equals(var)) {
-                    this.rightExpression = new Val(rightExpression.val);
-                }
-            } else {
-                rightExpression.replaceVar(var);
-            }
+        } else {
+            if (leftExpression != null)
+                leftExpression = leftExpression.replaceVar(var);
+            if (rightExpression != null)
+                rightExpression = rightExpression.replaceVar(var);
         }
         return this;
     }
@@ -107,15 +105,28 @@ public abstract class Expression implements Cloneable {
     public void setExpressions(ArrayList<Pair<String, Expression>> varValues) {
         if (this.type == Type.VAR) {
             for (Pair<String, Expression> pair : varValues)
-                if (name.equals(pair.getKey())) {
-                    rightExpression = pair.getValue();
+                if (name.equals(pair.key)) {
+                    rightExpression = pair.value;
                     break;
                 }
+        } else {
+            if (leftExpression != null)
+                leftExpression.setExpressions(varValues);
+            if (rightExpression != null)
+                rightExpression.setExpressions(varValues);
         }
-        if (leftExpression != null)
-            leftExpression.setExpressions(varValues);
-        if (rightExpression != null)
-            rightExpression.setExpressions(varValues);
+    }
+
+    public void setExpression(String var, Expression expression, boolean rewrite) {
+        if (this.type == Type.VAR && (rewrite || rightExpression == null)) {
+                if (name.equals(var)) {
+                    setRightExpression(expression);
+                }
+        }
+            if (leftExpression != null)
+                leftExpression.setExpression(var, expression, rewrite);
+            if (rightExpression != null)
+                rightExpression.setExpression(var, expression, rewrite);
     }
 
     public ArrayList<String> getVars() {
@@ -128,6 +139,18 @@ public abstract class Expression implements Cloneable {
         if (rightExpression != null)
             vars.addAll(rightExpression.getVars());
         return (ArrayList<String>) vars.stream().distinct().collect(Collectors.toList());
+    }
+
+    public ArrayList<Expression> getExpressions(Type type) {
+        ArrayList<Expression> expressions = new ArrayList<>();
+        if (this.type == type) {
+            expressions.add(this);
+        }
+        if (leftExpression != null)
+            expressions.addAll(leftExpression.getExpressions(type));
+        if (rightExpression != null)
+            expressions.addAll(rightExpression.getExpressions(type));
+        return expressions;
     }
 
     public boolean contains(String name) {
@@ -145,28 +168,83 @@ public abstract class Expression implements Cloneable {
         return this.type == type | (leftExpression != null && leftExpression.contains(type)) | (rightExpression != null && rightExpression.contains(type));
     }
 
-    public Expression optimize() {
-        if (leftExpression != null)
-            leftExpression = leftExpression.optimize();
-        if (rightExpression != null)
-            rightExpression = rightExpression.optimize();
-        return this;
+    public int getExpressionCount(int count) {
+        if (type != Type.VALUE && type != Type.VAR) {
+            count++;
+            if (leftExpression != null) {
+                if (rightExpression != null) {
+                    count = leftExpression.getExpressionCount(count);
+                    return rightExpression.getExpressionCount(count);
+                }
+                return leftExpression.getExpressionCount(count);
+            } else if (rightExpression != null) {
+                return rightExpression.getExpressionCount(count);
+            }
+        }
+        return count;
     }
 
-    public abstract double getVal();
-    public abstract Expression getDerivative(String var);
-    public abstract Expression getIntegral();
+    public Expression getOptimized() throws CloneNotSupportedException{
+        try {
+            Expression expression = (Expression) super.clone();
+            if (expression.getVars().size() == 0) {
+                return new Val(expression.getVal());
+            }
+            if (leftExpression != null)
+                expression.setLeftExpression(leftExpression.getOptimized());
+            if (rightExpression != null)
+                expression.setRightExpression(rightExpression.getOptimized());
+            return expression;
+        } catch (CloneNotSupportedException e) {
+            return null;
+        }
+    }
 
-    public Expression clone() throws
-            CloneNotSupportedException
+    public double getVal() {return  0;};
+    public Expression getDerivative(String var) { return null; };
+    public Expression getIntegral() { return null;};
+
+    public Expression clone() throws CloneNotSupportedException
     {
         Expression expression = (Expression) super.clone();
         if (leftExpression != null)
-            expression.leftExpression = leftExpression.clone();
+            expression.setLeftExpression(leftExpression.clone());
         if (rightExpression != null)
-            expression.rightExpression = rightExpression.clone();
+            expression.setRightExpression(rightExpression.clone());
         return expression;
     }
+
+    public void setLeftExpression(Expression expression) {
+        leftExpression = expression;
+        if (leftExpression != null) {
+            leftExpression.parent = this;
+        }
+    }
+    public void setRightExpression(Expression expression) {
+        rightExpression = expression;
+        if (rightExpression != null) {
+            rightExpression.parent = this;
+        }
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return super.equals(obj) || (
+                        obj != null
+                        && (getClass().isInstance(obj)
+                        && ((Expression)obj).type == this.type
+                        && ((Expression)obj).priority == this.priority)
+                        && ((Expression)obj).toString().equals(this.toString())
+                        && (leftExpression == ((Expression) obj).leftExpression || leftExpression.equals(((Expression)obj).leftExpression))
+                        && (rightExpression == ((Expression) obj).rightExpression || rightExpression.equals(((Expression)obj).rightExpression))
+        );
+    }
+
+    public boolean fillExpressions() {
+        return false;
+    }
+
+
 
 }
 

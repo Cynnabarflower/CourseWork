@@ -1,10 +1,13 @@
 package sample.Expressions;
 
-import javafx.util.Pair;
+import sample.Main;
+import sample.Pair;
 import sample.WrongExpressionException;
 
 import java.awt.*;
+import java.lang.reflect.Array;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ExpressionFactory {
 
@@ -40,14 +43,20 @@ public class ExpressionFactory {
                 Expression expression = expressionsArray.get(i);
                 if (expression.type == Expression.Type.VALUE || expression.type == Expression.Type.VAR) {
                     postfixExpressions.add(expression);
-                } else if (expression.type == Expression.Type.FUNCTION && expression.numberOfArgs == 1) {
-                    stack.push(expression);
+                } else if (expression.numberOfArgs == 1) {
+                    if (expression.argumentPosition == Expression.ArgumentPosition.LEFT) {
+                        postfixExpressions.add(expression);
+                    } else if (expression.argumentPosition == Expression.ArgumentPosition.RIGHT) {
+                        stack.push(expression);
+                    } else {
+                        throw new WrongExpressionException("Wrong argument position or number of arguments for "+expression);
+                    }
                 } else if (expression.type == Expression.Type.LEFT_BRACKET) {
                     stack.push(expression);
                 } else if (expression.type == Expression.Type.RIGHT_BRACKET) {
                     while (!stack.empty()) {
                         Expression temp = stack.pop();
-                        if (temp.name.equals("(")) {
+                        if (temp.type == Expression.Type.LEFT_BRACKET) {
                             if (!stack.empty() &&
                                     stack.peek().argumentPosition == Expression.ArgumentPosition.RIGHT) {
                                 postfixExpressions.add(stack.pop());
@@ -55,9 +64,11 @@ public class ExpressionFactory {
                             break;
                         } else {
                             postfixExpressions.add(temp);
+
                         }
                     }
-                } else if (expression.type == Expression.Type.FUNCTION) {
+                   // postfixExpressions.add(new Bracket());
+                } else if (expression.numberOfArgs == 2) {
                     if (expression.argumentPosition == Expression.ArgumentPosition.LEFT_AND_RIGHT) {
                         while (!stack.empty()) {
                             if (((stack.peek().type == Expression.Type.FUNCTION && stack.peek().numberOfArgs == 1) || stack.peek().priority <= expression.priority)
@@ -89,18 +100,20 @@ public class ExpressionFactory {
             for (int i = 0; i < postfixExpressions.size(); i++) {
                 Expression current = postfixExpressions.get(i);
                 try {
-                    if (current.type == Expression.Type.FUNCTION && current.numberOfArgs == 2) {
+                    if (current.numberOfArgs == 2) {
                         if (!stack.empty()) {
-                            current.rightExpression = stack.pop();
+                            current.setRightExpression(stack.pop());
                         }
                         if (!stack.empty()) {
-                            current.leftExpression = stack.pop();
+                            current.setLeftExpression(stack.pop());
+                        } else if (!current.fillExpressions()) {
+                            throw new WrongExpressionException("Wrong args for " + current.name);
                         }
                         stack.push(current);
                     } else if (current.type == Expression.Type.VALUE || current.type == Expression.Type.VAR) {
                         stack.push(current);
-                    } else if (current.type == Expression.Type.FUNCTION && current.numberOfArgs == 1) {
-                        current.rightExpression = stack.pop();
+                    } else if (current.numberOfArgs == 1) {
+                        current.setRightExpression(stack.pop());
                         stack.push(current);
                     } else if (current.type == Expression.Type.EQUALITY) {
                         Expression right = stack.pop();
@@ -108,8 +121,8 @@ public class ExpressionFactory {
                         if (left.type != Expression.Type.VAR && left.type != Expression.Type.VALUE) {
                             throw new WrongExpressionException("Wrong equality exception");
                         }
-                        current.leftExpression = left;
-                        current.rightExpression = right;
+                        current.setLeftExpression(left);
+                        current.setRightExpression(right);
                         stack.push(current);
                     } else if (current.type == Expression.Type.DERIVATIVE) {
                         stack.push(stack.pop().getDerivative(current.leftExpression.name));
@@ -119,13 +132,27 @@ public class ExpressionFactory {
                 }
             }
            Expression expressionToAdd = stack.pop();
-           vars = expressionToAdd.getVars();
+           if (expressionToAdd.type == Expression.Type.DIVIDER) {
+                   ArrayList<Expression> points = new ArrayList<>();
+                   points.add(expressionToAdd);
+                   while (!stack.empty()) {
+                       if (stack.peek().type == Expression.Type.DIVIDER) {
+                           points.add(stack.pop());
+                       } else {
+                           throw new WrongExpressionException("Can\'t have points and expression in one line");
+                       }
+                   }
+                       expressions.add(ExpressionFactory.optimize(getPolynom(points)));
+                   continue;
+
+           } else if (!stack.empty()) {
+               throw new WrongExpressionException("Probably operator is missed");
+           }
 
             if (expressionToAdd.type == Expression.Type.EQUALITY) {
-                for (String varName : vars)
-                    if (expressionToAdd.leftExpression.name.equals(varName)) {
-                        throw new WrongExpressionException("Duplicate var assignment: "+varName);
-                    }
+                if (expressionToAdd.rightExpression.contains(expressionToAdd.leftExpression.name)) {
+                    throw new WrongExpressionException("Duplicate var assignment: "+expressionToAdd.leftExpression.name);
+                }
                 expressions.add(0, expressionToAdd);
             } else {
                 if (expressionToAdd.contains(Expression.Type.EQUALITY)) {
@@ -137,23 +164,23 @@ public class ExpressionFactory {
 
         ArrayList<Pair<String, Expression>> expressionsToSet = new ArrayList<>();
         for (Expression expression : expressions) {
-            for (Expression varExpression : expressions) {
-                if (varExpression.type == Expression.Type.EQUALITY && expression.contains(varExpression.leftExpression.name)) {
-                    expressionsToSet.add(new Pair<>(varExpression.name, expression));
-                }
+            if (expression.type == Expression.Type.EQUALITY) {
+                expressionsToSet.add(new Pair<String, Expression>(expression.leftExpression.name, expression.rightExpression));
+
+            } else {
+                    expression.setExpressions(expressionsToSet);
             }
-            expression.setExpressions(expressionsToSet);
-            expressionsToSet = new ArrayList<>();
         }
 
         return expressions;
     }
 
+
     private static ArrayList<Expression> getExpressionArray(String s, ArrayList<String> vars) {
         if (vars != null) {
             vars.sort((s1, t1) -> t1.length() - s1.length());
         }
-        boolean gotComma = false;
+
         ArrayList<Expression> expressions = new ArrayList<>();
         while (!s.isEmpty()) {
             if (s.startsWith("log")) {
@@ -168,6 +195,9 @@ public class ExpressionFactory {
             } else if (s.startsWith("floor")) {
                 s = s.substring(5);
                 addExpression(expressions, new Floor(null));
+            } else if (s.startsWith("divider")) {
+                s = s.substring(7);
+                addExpression(expressions, new Divider(null, null));
             } else if (Character.isDigit(s.charAt(0))) {
 
                 StringBuilder str = new StringBuilder(s.charAt(0));
@@ -203,7 +233,13 @@ public class ExpressionFactory {
                             addExpression(expressions, new Sum());
                             break;
                         case '-':
-                            addExpression(expressions, new Sub());
+                            if (expressions.isEmpty() || expressions.get(expressions.size()-1).type == Expression.Type.DIVIDER
+                                    || expressions.get(expressions.size()-1).type == Expression.Type.FUNCTION
+                                    || expressions.get(expressions.size()-1).type == Expression.Type.EQUALITY) {
+                                addExpression(expressions, new Sub(null));
+                            } else {
+                                addExpression(expressions, new Sub());
+                            }
                             break;
                         case '*':
                             addExpression(expressions, new Mul());
@@ -226,13 +262,15 @@ public class ExpressionFactory {
                         case ',':
                             addExpression(expressions, new Divider());
                             break;
+                        case '\'':
+                            addExpression(expressions, new Derivative(null));
+                            break;
                         default:
                             addExpression(expressions, new Var(0, "" + symb));
                     }
                     s = s.substring(1);
                 }
             }
-            gotComma = false;
         }
 
         return expressions;
@@ -240,9 +278,16 @@ public class ExpressionFactory {
 
     private static void addExpression(ArrayList<Expression> expressions, Expression expression) {
         if (!expressions.isEmpty())
-        { if ((expressions.get(expressions.size()-1).type == Expression.Type.VALUE || expressions.get(expressions.size()-1).type == Expression.Type.RIGHT_BRACKET || expressions.get(expressions.size()-1).type == Expression.Type.VAR) &&
+        {
+            if ((expressions.get(expressions.size()-1).type == Expression.Type.VALUE || expressions.get(expressions.size()-1).type == Expression.Type.RIGHT_BRACKET || expressions.get(expressions.size()-1).type == Expression.Type.VAR) &&
                 (expression.type == Expression.Type.VALUE || expression.type == Expression.Type.VAR || expression.type == Expression.Type.LEFT_BRACKET)) {
-                expressions.add(new Mul());
+                if (expression.type == Expression.Type.VAR && expressions.get(expressions.size()-1).type == Expression.Type.VAR) {
+                    Expression lastExpression =  expressions.get(expressions.size()-1);
+                    lastExpression.name = lastExpression.name + expression.name;
+                    expressions.set(expressions.size()-1, lastExpression);
+                    return;
+                }
+                    expressions.add(new Mul());
             }
         }
         expressions.add(expression);
@@ -250,7 +295,6 @@ public class ExpressionFactory {
 
     private static String replaceComplexBrackets(String s) {
         Stack<Character> brackets = new Stack();
-        String betweenModulus = "";
         StringBuilder formated = new StringBuilder();
         int i = 0;
         for (; i < s.length(); i++) {
@@ -259,18 +303,20 @@ public class ExpressionFactory {
                 brackets.push(current);
                 formated.append(current);
             } else if (current == '}') {
-                if (brackets.peek() == '{') {
+                if (!brackets.empty() && brackets.peek() == '{') {
                     brackets.pop();
-                    formated.append(current);
+                    formated.insert(formated.lastIndexOf("{"),"divider(");
+                    formated.deleteCharAt(formated.lastIndexOf("{"));
+                    formated.append(")");
                 } else break;
-            } else if (current == ']') {
+            } else if (!brackets.empty() && current == ']') {
                 if (brackets.peek() == '[') {
                     brackets.pop();
                     formated.insert(formated.lastIndexOf("["),"floor(");
                     formated.deleteCharAt(formated.lastIndexOf("["));
                     formated.append(")");
                 } else break;
-            } else if (current == ')') {
+            } else if (!brackets.empty() && current == ')') {
                 if (brackets.peek() == '(') {
                     brackets.pop();
                     formated.append(current);
@@ -280,7 +326,7 @@ public class ExpressionFactory {
                 if (i == 0 || !(Character.isAlphabetic(s.charAt(i-1)) || Character.isDigit(s.charAt(i-1)))) {
                     brackets.push(current);
                     formated.append(current);
-                } else if (brackets.peek() == '|') {
+                } else if (!brackets.empty() && brackets.peek() == '|') {
                     formated.insert(formated.lastIndexOf("|"),"abs(");
                     formated.deleteCharAt(formated.lastIndexOf("|"));
                     formated.append(")");
@@ -297,16 +343,8 @@ public class ExpressionFactory {
         return formated.toString();
     }
 
-    public static Expression getPolynom(ArrayList<Pair<Double, Double>> points) {
-        ArrayList<Double> xs = new ArrayList<>();
-        ArrayList<Double> ys = new ArrayList<>();
-        for (Pair<Double, Double> point : points) {
-            xs.add(point.getKey());
-            ys.add(point.getValue());
-        }
-        return getPolynom(xs,ys);
-    }
 
+/*
     public static Expression getPolynom(ArrayList<Double> xs, ArrayList<Double> ys) {
         Expression mainExpression = new Val(0);
         Expression expression = new Sub(new Var("x"), new Var("t"));
@@ -314,9 +352,12 @@ public class ExpressionFactory {
         for (int i = 0; i < xs.size(); i++) {
             Expression series = getSeries(expression, "t", xs, "*");
             Expression temp = series;
-            while (temp != null && temp.rightExpression != null && temp.rightExpression.rightExpression != null) {
+            while (temp != null &&
+                    temp.rightExpression != null &&
+                    temp.rightExpression.rightExpression != null) {
+
                 if (temp.rightExpression.rightExpression.val == xs.get(i)) {
-                    temp.rightExpression = new Val(1);
+                    temp.setRightExpression(new Val(1));
                     break;
                 }
                 temp = temp.leftExpression;
@@ -325,7 +366,7 @@ public class ExpressionFactory {
             temp = series2;
             while (temp != null && temp.rightExpression != null && temp.rightExpression.rightExpression != null) {
                 if (temp.rightExpression.rightExpression.val == xs.get(i)) {
-                    temp.rightExpression = new Val(1);
+                    temp.setRightExpression(new Val(1));
                     break;
                 }
                 temp = temp.leftExpression;
@@ -336,8 +377,71 @@ public class ExpressionFactory {
         mainExpression.replaceVar("t");
         return mainExpression;
     }
+*/
+    public static Expression getPolynom(ArrayList<Expression> points) {
+        boolean varIsUsed = false;
+        String varsToUse[] = {"x", "t", "p", "y", "u", "polynom_argument"};
+        ArrayList<String> usedVars = new ArrayList<>();
+        for (Expression point : points) {
+            usedVars.addAll(point.getVars());
+        }
+        usedVars = (ArrayList<String>) usedVars.stream().distinct().collect(Collectors.toList());
+        for (int i = 0; i < varsToUse.length; i++) {
+            varIsUsed = false;
+            for (String usedVar : usedVars) {
+                if (usedVar.equals(varsToUse[i])) {
+                    varIsUsed = true;
+                    break;
+                }
+            }
+            if (!varIsUsed) {
+                return getPolynom(points, varsToUse[i]);
+            }
+        }
+        Main.showException("Consider using different var names");
+        return null;
+    }
 
-    public static Expression getSeries(Expression expression, int from, int to, int step,  String var, ArrayList<Double> values, String operation) {
+    public static Expression getPolynom(ArrayList<Expression> points, String polynomVar) {
+        Expression mainExpression = new Val(0);
+        Expression expression = new Sub(new Var(polynomVar), new Var("polynomPar"));
+        Expression expression2 = new Sub(new Var(polynomVar), new Var("polynomPar"));
+        try {
+            for (int i = 0; i < points.size(); i++) {
+                ArrayList<Expression> copyPoints = new ArrayList<>();
+                for (int j = 0; j < i; j++) {
+                    copyPoints.add(points.get(j).leftExpression.clone());
+                }
+                Expression series = getSeries(expression, "polynomPar", copyPoints, "*");
+                copyPoints = new ArrayList<>();
+                for (int j = i + 1; j < points.size(); j++) {
+                    copyPoints.add(points.get(j).leftExpression.clone());
+                }
+                series = new Mul(series, getSeries(expression, "polynomPar", copyPoints, "*"));
+
+                copyPoints = new ArrayList<>();
+                for (int j = 0; j < i; j++) {
+                    copyPoints.add(points.get(j).leftExpression.clone());
+                }
+                Expression series2 = getSeries(expression2, "polynomPar", copyPoints, "*");
+                copyPoints = new ArrayList<>();
+                for (int j = i + 1; j < points.size(); j++) {
+                    copyPoints.add(points.get(j).leftExpression.clone());
+                }
+                series2 = new Mul(series2, getSeries(expression2, "polynomPar", copyPoints, "*"));
+
+
+                series2.setExpression(polynomVar, points.get(i).leftExpression, true);
+                series2.replaceVar(polynomVar);
+                mainExpression = new Sum(mainExpression, new Mul(new Div(series, series2), points.get(i).rightExpression));
+            }
+        } catch (CloneNotSupportedException e) {
+            e.printStackTrace();
+        }
+        return mainExpression;
+    }
+
+    public static Expression getSeries(Expression expression, int from, int to, int step,  String var, ArrayList<Expression> values, String operation) {
         if (var.isEmpty()) {
             ArrayList<String> vars = expression.getVars();
             if (vars.size() == 1) {
@@ -354,13 +458,13 @@ public class ExpressionFactory {
             }
         }
         if (values == null) {
-            values = new ArrayList<Double>();
+            values = new ArrayList<Expression>();
             for (int i = from; i <= to; i++)
-                values.add((double)i);
+                values.add(new Val(i));
             to = to - from;
             from = 0;
         } else if (values.size() < from || values.size() < to) {
-            System.out.println("Cant take series");
+            Main.showException("Error when making series");
             return null;
         }
         Expression seriesExpression = new Val(0);
@@ -371,7 +475,8 @@ public class ExpressionFactory {
         try {
             for (; from <= to; from += step) {
                 Expression iterationExpression = expression.clone();
-                iterationExpression.setValue(var, values.get(from));
+                iterationExpression.setExpression(var, values.get(from), true);
+                iterationExpression.replaceVar(var);
                 if (operation.equals("*")) {
                     seriesExpression = new Mul(seriesExpression, iterationExpression.clone());
                 } else {
@@ -386,7 +491,65 @@ public class ExpressionFactory {
         return getSeries(expression, 1, depth, 1, var, null, op);
     }
 
-    public static Expression getSeries(Expression expression, String var, ArrayList<Double> values, String operation) {
+    public static Expression getSeries(Expression expression, String var, ArrayList<Expression> values, String operation) {
         return getSeries(expression, 0, values.size()-1, 1, var, values, operation);
     }
+
+    public static Expression optimize(Expression expression) {
+        int ops = expression.getExpressionCount(0);
+        try {
+            Expression expression1 = expression.getOptimized();
+            if (expression1.getExpressionCount(0) < ops) {
+                return optimize(expression1);
+            } else {
+                return expression;
+            }
+        } catch (CloneNotSupportedException e) {
+            return null;
+        }
+    }
+
+    public static ArrayList<Pair<Double, Double>> getPoints(Expression expression, String varName, double from, double to, int minSize, double eps) {
+        double leng = Math.abs(to - from);
+        double step = leng / (minSize-1);
+        Pair<Double, Double> pair;
+        int doubleAcc = 0;
+        ArrayList<Pair<Double, Double>> points = new ArrayList<>();
+        for (double i = 0; i < minSize || from <= to; i++) {
+            pair = new Pair<>(from, expression.setValue(varName, from).getVal());
+            if (eps > 0 && !points.isEmpty() && !Double.isNaN(pair.value)) {
+                if (Math.abs(pair.value - points.get(points.size()-1).value) > eps / step) {
+                    if (doubleAcc < 3) {
+                        i--;
+                        step /= 2;
+                        doubleAcc++;
+                        continue;
+                    }
+                } else if (doubleAcc > 0) {
+                    doubleAcc--;
+                    step *= 2;
+                }
+            }
+            points.add(pair);
+            from += step;
+        }
+        return points;
+    }
+
+    public static ArrayList<Pair<Double, Double>> getPoints(Expression expression, String varName, double from, double to, int minSize) {
+       return getPoints(expression, varName, from, to, minSize,0);
+    }
+
+    public static ArrayList<Pair<Double, Double>> getPoints(ArrayList<Expression> expressions, String varName, double from, double to, int minSize, double eps) {
+        ArrayList<Pair<Double, Double>> points = new ArrayList<>();
+        for (Expression expression : expressions) {
+            points.addAll(getPoints(expression, varName, from, to, minSize, eps));
+            points.add(new Pair<>(Double.NaN, Double.NaN));
+        }
+        return points;
+    }
+    public static ArrayList<Pair<Double, Double>> getPoints(ArrayList<Expression> expressions, String varName, double from, double to) {
+       return getPoints(expressions, varName, from, to, Math.min((int)Math.abs(to-from), 50) , 0);
+    }
+
 }

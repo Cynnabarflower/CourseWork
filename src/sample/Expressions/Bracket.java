@@ -27,4 +27,14 @@ public class Bracket extends Expression {
             type = Type.LEFT_BRACKET;
         }
     }
+
+    public Bracket() {
+        super(0,"()", Type.RIGHT_BRACKET, ArgumentPosition.RIGHT,0, 2,null, null);
+    }
+
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }

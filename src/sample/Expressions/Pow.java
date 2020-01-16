@@ -27,7 +27,7 @@ public class Pow extends Expression {
     }
 
     public Pow(Expression left, Expression right) {
-        super(0, "Pow", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT, 1, 2, left, right);
+        super(0, "Pow", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT, 10, 2, left, right);
     }
 
     @Override

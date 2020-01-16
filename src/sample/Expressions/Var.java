@@ -14,7 +14,10 @@ public class Var extends Expression {
 
     @Override
     public double getVal() {
-        return val;
+        if (rightExpression == null) {
+            return val;
+        }
+        return rightExpression.getVal();
     }
 
     @Override
@@ -32,6 +35,9 @@ public class Var extends Expression {
 
     @Override
     public String toString() {
-        return name;
+        if (rightExpression == null)
+            return name;
+        // there must be a better way
+        return name + "("+(""+rightExpression.getVars()).substring(1).replace("]", "")+")";
     }
 }
