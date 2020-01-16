@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="style.min.css">
   <link rel="icon" type="image/png" href="/favicon.png">
   <script src="phaser.min.js"></script>
-  <script src="piklor.js"></script>
+  <script src="piklor.min.js"></script>
 </head>
 <body>
   
@@ -24,20 +24,19 @@
           </a>
           <a href="#" class="c-tabs-nav__link">
             <i class="fa fa-book"></i>
-            <span>Points</span>
+            <span>Settings</span>
           </a>
         </div>
         <div class="c-tab is-active" style="width: 100%; height: 100%">
           <div class="c-tab__content" style="width: 100%; height: 100%">
 
-            <table width="100%" cellspacing="0" cellpadding="5">
+            <table width="100%" cellspacing="5" cellpadding="5" style=" valign = 'top'">
               <tr>
                 <td style = 'width="50%" valign="top" '>
                   <expressions id="expressions"></expressions>
                   <div> <input type="submit" id = "addExpression" value = "+" onclick = "addExpression()"></div>
                   <p><output id = "inputExpression"></output>  (<output id = "inputExpressionValue">0</output>)</p>
                   <p><output id = "derivativeExpression"></output>  (<output id = "derivativeExpressionValue">0</output>)</p>
-
                 </td>
                 <td id = 'vars_place' style = 'width="20%" valign="top"'>
 
@@ -57,6 +56,10 @@
           <div class="c-tab__content" style="width: 100%; height: 100%">
             <h2>All Books</h2>
             <textarea id='defaultExpressions'  style="width: 100%; height: 100px" name="FindString" value="" size=100%></textarea>
+            <input type="submit" id = "saveSettings" value = "Save" onclick = "saveSettings()">
+            <input type="submit" id = "getSettings" value = "Load" onclick = "getSettings()">
+            <input type="submit" id = "getDefaultSettings" value = "Default" onclick = "getDefaultExpressions()">
+          </div>
           </div>
 
         </div>

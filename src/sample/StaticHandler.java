@@ -61,10 +61,19 @@ public class StaticHandler implements HttpHandler
         if (httpExchange.getRequestMethod().equals("POST")) {
             JSONObject jsonObject = (JSONObject) JSON.parse(sb.toString());
             //Main.readIt(Integer.parseInt((String) jsonObject.get("id")), (String) jsonObject.get("element"), (String) jsonObject.get("varValues"));
+            byte[] bytes = {};
             if (jsonObject.containsKey("id") && jsonObject.containsKey("element") && jsonObject.containsKey("varValues")) {
-                jsonObject = Main.readIt(Integer.parseInt((String) jsonObject.get("id")), (String) jsonObject.get("element"), (String) jsonObject.get("varValues"));
+                jsonObject = Main.readIt((String) jsonObject.get("id"), (String) jsonObject.get("element"), (String) jsonObject.get("varValues"));
+                bytes = jsonObject.toJSONString().getBytes();
+            } else if (jsonObject.containsKey("defaultExpressions") && jsonObject.containsKey("settings_id")) {
+                String settingsId = jsonObject.get("settings_id").toString();
+                String defaultExpressions = jsonObject.get("defaultExpressions").toString();
+                Main.setUserSettings(settingsId, defaultExpressions);
+                bytes = "Ok".getBytes();
+            } else if (jsonObject.containsKey("settings_id")) {
+                String settingsId = jsonObject.get("settings_id").toString();
+                bytes = Main.getUserSettings(settingsId).getDefaultExpressions().getBytes();
             }
-            byte[] bytes = jsonObject.toJSONString().getBytes();
             httpExchange.getResponseHeaders().set("Content-Type", "text/javascript");
             httpExchange.sendResponseHeaders(200, bytes.length);
             httpExchange.getResponseBody().write(bytes);

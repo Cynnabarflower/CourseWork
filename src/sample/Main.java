@@ -23,7 +23,7 @@ public class Main extends Application {
     public static String inputExpressionValue = "inputExpressionValue";
     public static String derivativeExpression = "derivativeExpression";
     public static String derivativeExpressionValue = "derivativeExpressionValue";
-    private static Map<String, Expression> expressionsFromFile;
+    private static Map<String, UserSettings> userSettings;
 
     @Override
     public void start(Stage primaryStage) throws Exception{
@@ -78,31 +78,60 @@ public class Main extends Application {
     }
 
     public Main() {
-        readExpressionsFromFile();
+        //getExpressionsFromFile();
+        userSettings = new HashMap<>();
         String index = "C:\\Users\\Dmitry\\IdeaProjects\\CourseWork\\resources";
         new http.Server(index, 8000);
     }
 
-    public void readExpressionsFromFile() {
-        expressionsFromFile = new HashMap<>();
-        String textExpressions[] = {};
+    public static UserSettings getDefaultSettings() {
+        //ArrayList<Pair<String, Expression>> eqExpressions = new ArrayList<>();
+        //String textExpressions[] = {};
+        String stringExp = "";
         try {
-            textExpressions = new String(getClass().getResource("/defaultExpressions.txt").openStream().readAllBytes()).split("[;\n\r]+");
+            //textExpressions = new String(Main.class.getResource("/defaultExpressions.txt").openStream().readAllBytes()).split("[;\n\r]+");
+            stringExp = new String(Main.class.getResource("/defaultExpressions.txt").openStream().readAllBytes());
         } catch (IOException e) {
             e.printStackTrace();
         }
-        for (String textExpression : textExpressions) {
+/*        for (String textExpression : textExpressions) {
             try {
                 ArrayList <Expression> expressions =  ExpressionFactory.getExpressionTree(textExpression, null);
                 for (Expression expression : expressions)
                     if (expression.type == Expression.Type.EQUALITY && expression.leftExpression.type == Expression.Type.VAR) {
-                        expressionsFromFile.put(expression.leftExpression.name, expression.rightExpression);
+                        eqExpressions.add(new Pair<>(expression.leftExpression.name, expression.rightExpression));
                     }
             } catch (WrongExpressionException e) {
                 e.printStackTrace();
             }
-        }
+        }*/
+        return new UserSettings(stringExp);
 
+    }
+
+
+    public static void setUserSettings(String id, String text) {
+        String textExpressions[] = text.split("[;\n\r]+");
+  //      ArrayList<Pair<String, Expression>> eqExpressions = new ArrayList<>();
+/*        for (String textExpression : textExpressions) {
+            try {
+                ArrayList <Expression> expressions =  ExpressionFactory.getExpressionTree(textExpression, null);
+                for (Expression expression : expressions)
+                    if (expression.type == Expression.Type.EQUALITY && expression.leftExpression.type == Expression.Type.VAR) {
+                        eqExpressions.add(new Pair<String, Expression>(expression.leftExpression.name, expression.rightExpression));
+                    }
+            } catch (WrongExpressionException e) {
+                e.printStackTrace();
+            }
+        }*/
+        userSettings.put(id, new UserSettings(text.replaceAll("[\n\r]+", "\n")));
+    }
+
+    public static UserSettings getUserSettings(String id) {
+        var settings = userSettings.get(id);
+        if (settings == null) {
+            return getDefaultSettings();
+        } else return settings;
     }
 
     public static void displayOutput(String id, String s) {
@@ -146,7 +175,7 @@ public class Main extends Application {
     }
 
 
-    public static JSONObject readIt(int id, String s, String varNames) {
+    public static JSONObject readIt(String id, String s, String varNames) {
 
         ArrayList<String> vars = new ArrayList<>();
         ArrayList<Pair<String, Expression>> varValues = new ArrayList<>();
@@ -155,7 +184,6 @@ public class Main extends Application {
             try {
                 ArrayList<Expression> expressions = ExpressionFactory.getExpressionTree(varNames, null);
                 for (Expression expression : expressions) {
-
                     if (expression.type == Expression.Type.EQUALITY) {
                         vars.add(expression.leftExpression.name);
                         varValues.add(new Pair<>(expression.leftExpression.name, expression.rightExpression));
@@ -171,10 +199,31 @@ public class Main extends Application {
 
         try {
 
+
             ArrayList<Expression> expressions = ExpressionFactory.getExpressionTree(s, vars);
+            ArrayList<Expression> optimizedExpressions = new ArrayList<>();
+            ArrayList<Expression> defaultExpressions = getUserSettings(id).expressions;
+            for (var def : defaultExpressions)
+                vars.addAll(def.getVars());
+
             for (Expression expression : expressions) {
                 if (expression != null) {
+                    Expression newExpression = null;
+                    int iteration = 0;
+                    while (true) {
+                        newExpression = expression.clone();
+                        for (var ex : defaultExpressions) {
+                            newExpression.setExpression(ex.leftExpression.name, ex.rightExpression, false);
+                        }
+                        if (expression.equals(newExpression) || iteration > 100) {
+                            break;
+                        }
+                        expression = newExpression.clone();
+                        iteration++;
+
+                    }
                     expression.setExpressions(varValues);
+
                     Expression der = expression.getDerivative("x").getOptimized();
                     der = ExpressionFactory.optimize(der);
                     displayOutput(inputExpression, expression.toString());
@@ -195,16 +244,19 @@ public class Main extends Application {
                     displayOutput(inputExpression, "mistake in expression");
                 }
                 varsFromExpressions = ((ArrayList<String>) varsFromExpressions.stream().distinct().collect(Collectors.toList()));
-                String varName = varsFromExpressions.contains("x") ? "x" : varsFromExpressions.contains("y") ? "y" : varsFromExpressions.size() > 0 ? varsFromExpressions.get(0) : "";
-                ArrayList<Pair<Double, Double>> points = ExpressionFactory.getPoints(expressions,varName, -30, 30, 10);
-                varsFromExpressions.removeAll(vars);
-               // addVars(varsFromExpressions);
-                Map<String, Object> map = new HashMap<>();
-                map.put("points", points.toArray());
-                map.put("expression", expression.toString());
-                map.put("vars", expression.getVars().toArray());
-                return new JSONObject(map);
+                optimizedExpressions.add(expression);
             }
+
+            String varName = varsFromExpressions.contains("x") ? "x" : varsFromExpressions.contains("y") ? "y" : varsFromExpressions.size() > 0 ? varsFromExpressions.get(0) : "";
+            ArrayList<Pair<Double, Double>> points = ExpressionFactory.getPoints(optimizedExpressions, varName, -5, 5, 100, 0.01);
+            varsFromExpressions.removeAll(vars);
+            Map<String, Object> map = new HashMap<>();
+            map.put("points", points.toArray());
+            map.put("expression", "bla-bla");
+            map.put("vars", varsFromExpressions.toArray());
+            //  map.put("varTitles", expression.getExpressions(Expression.Type.VAR).toArray());
+            return new JSONObject(map);
+
         } catch (Exception e) {
             displayOutput(inputExpression, e.getMessage());
             e.printStackTrace();

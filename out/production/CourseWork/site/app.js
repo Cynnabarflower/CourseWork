@@ -30,7 +30,7 @@ function addColorPicker(expressionNumber) {
             open: "#picker-wrapper" + expressionNumber + " #color-button" + expressionNumber
         }),
         wrapperEl = pk.getElm("#color-button" + expressionNumber),
-        id = expressionNumber;;
+        id = ""+expressionNumber;
 
     pk.colorChosen(function(col) {
         wrapperEl.style.backgroundColor = col;
@@ -86,6 +86,11 @@ var game = new Phaser.Game(config);
 
 
 function create() {
+    var settings_id = getCookie("settings_id");
+    if (!!!settings_id) {
+        settings_id = Math.random(Date.now()).toString().substr(2, 9);
+        setCookie("settings_id", settings_id);
+    }
     expressionNumber = 0;
     context = this;
     graphWidth = 100;
@@ -173,46 +178,52 @@ function drawGraph(points, id) {
             t: 0,
             vec: new Phaser.Math.Vector2()
         };
-        var minX = 0;
-        var maxX = 0;
-        var minY = 0;
-        var maxY = 0;
-        while (points.length > 0 && !!!(points[0].value)) {
+        var minX = 99999999999;
+        var maxX = -9999999999;
+        var minY = 99999999999;
+        var maxY = -9999999999;
+        while (points.length > 0 && points[0].value == null) {
            points.shift();
         }
 
-        path = new Phaser.Curves.Path(points[0].key, -points[0].value);
-        if (points[0].key < minX)
-            minX = points[0].key;
-        if (points[0].key > maxX)
-            maxX = points[0].key;
-        if (points[0].value < minY)
-            minY = points[0].value;
-        if (points[0].value > maxY)
-            maxY = points[0].value;
-        var textToSet = '';
-        textToSet += '' + points[0].key + ',' + (points[0].value) + '; ';
-        var gotNaN = false;
-        for (var i = 1; i < points.length; i++) {
-        if (!!!(points[i].value)) {
-            gotNaN = true;
-            continue;
-        } else if (gotNaN) {
-            path.moveTo(points[i].key, -points[i].value);
-            gotNaN = false;
-        } else {
-            gotNaN = false;
-            path.lineTo(points[i].key, -points[i].value);
+        if (points.length > 0) {
+
+            path = new Phaser.Curves.Path(points[0].key, -points[0].value);
+            if (points[0].key < minX)
+                minX = points[0].key;
+            if (points[0].key > maxX)
+                maxX = points[0].key;
+            if (points[0].value < minY)
+                minY = points[0].value;
+            if (points[0].value > maxY)
+                maxY = points[0].value;
+            var textToSet = '';
+            textToSet += '' + points[0].key + ',' + (points[0].value) + '; ';
+            var gotNaN = false;
+            for (var i = 1; i < points.length; i++) {
+            if (points[i].value == null) {
+                gotNaN = true;
+                continue;
+            } else if (gotNaN) {
+                path.moveTo(points[i].key, -points[i].value);
+                gotNaN = false;
+            } else {
+                gotNaN = false;
+                path.lineTo(points[i].key, -points[i].value);
+                }
+                if (points[i].key < minX)
+                    minX = points[i].key;
+                if (points[i].key > maxX)
+                    maxX = points[i].key;
+                if (points[i].value < minY)
+                    minY = points[i].value;
+                if (points[i].value > maxY)
+                    maxY = points[i].value;
+                // textToSet += ''+points.get(i).getKey()+','+(points.get(i).getValue())+'; ';
             }
-            if (points[i].key < minX)
-                minX = points[i].key;
-            if (points[i].key > maxX)
-                maxX = points[i].key;
-            if (points[i].value < minY)
-                minY = points[i].value;
-            if (points[i].value > maxY)
-                maxY = points[i].value;
-            // textToSet += ''+points.get(i).getKey()+','+(points.get(i).getValue())+'; ';
+        } else {
+            path = new Phaser.Curves.Path(0, 0);
+            maxX = maxY = minX = minY = 0;
         }
 
 
@@ -259,10 +270,10 @@ function clicked(element) {
          console.log(name+ " "+ value.value+" "+value.chosen);
     }
      console.log(varValues);
-    readIt(element.id.replace("textInput", ""), element.value,  varValues);
+    readIt(getCookie("settings_id"), element.id.replace("textInput", ""), element.value,  varValues);
 }
 
-function readIt(id, element, varValues) {
+function readIt(id, graphId, element, varValues) {
     var url = "http://localhost:8000/";
     var options = {id : id, element : element, varValues : varValues}
 
@@ -277,9 +288,9 @@ function readIt(id, element, varValues) {
       .then(response =>
         {
             console.log(response)
-            drawGraph(response.points, id);
+            drawGraph(response.points, graphId);
             for (var i = 0; i < response.vars.length; i++)
-                addVar(response.vars[i], id);
+                addVar(response.vars[i], id, null);
         }
       );
 }
@@ -360,19 +371,22 @@ function varChosen(name){
 }
 
 
-function addVar(name, id) {
+function addVar(name, id, title) {
+
+    if (!!!title) {
+         title = name;
+    }
 
     if (document.getElementById('var_'+name) == null) {
             let div = document.createElement('div');
             div.className = "varClass";
-            div.innerHTML = "<input class='checkBox' type='checkbox' id=checkBox_"+name+" onchange = varChosen('"+name+"') >"+name+" = <input type=\"text\" size=\"10\" name = " + name + " id = \"var_" + name + "\">";
+            div.innerHTML = "<input class='checkBox' type='checkbox' id=checkBox_"+name+" onchange = varChosen('"+name+"') >"+title+" = <input type=\"text\" size=\"10\" name = " + name + " id = \"var_" + name + "\">";
             vars_place.append(div);
 
             document.getElementById("var_"+name).addEventListener("keyup", function(event) {
                 event.preventDefault();
                 varChanged(name);
             });
-
             vars.set(name, {value: 0, chosen: false, ids: new Map([ [id, 1] ] ) });
     } else {
         var obj = vars.get(name);
@@ -387,4 +401,69 @@ function addVar(name, id) {
         }
     }
 
+}
+
+function saveSettings() {
+ var url = "http://localhost:8000/";
+   var defaultExpressions = document.getElementById("defaultExpressions").value;
+   var settings_id = getCookie("settings_id");
+   if (!!!settings_id) {
+        settings_id = Math.random(Date.now()).toString().substr(2, 9);
+        setCookie("settings_id", settings_id);
+   }
+      var options = {defaultExpressions : defaultExpressions, settings_id : settings_id};
+       fetch(url, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json;charset=utf-8'
+                    },
+                    body: JSON.stringify(options)
+                    })
+         .then(response => response.text())
+         .then(response =>
+           {
+            alert("Saved");
+           })
+}
+
+function getSettings() {
+   var url = "http://localhost:8000/";
+      var options = {settings_id : getCookie("settings_id")};
+       fetch(url, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json;charset=utf-8'
+                    },
+                    body: JSON.stringify(options)
+                    })
+         .then(response => response.text())
+         .then(response =>
+           {
+            document.getElementById("defaultExpressions").value = response;
+           })
+}
+
+function getCookie(name) {
+  let matches = document.cookie.match(new RegExp(
+    "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+  ));
+  return matches ? decodeURIComponent(matches[1]) : undefined;
+}
+
+function setCookie(name, value, options = {}) {
+
+  options = {
+    path: '/'
+  };
+
+  let updatedCookie = encodeURIComponent(name) + "=" + encodeURIComponent(value);
+
+  for (let optionKey in options) {
+    updatedCookie += "; " + optionKey;
+    let optionValue = options[optionKey];
+    if (optionValue !== true) {
+      updatedCookie += "=" + optionValue;
+    }
+  }
+  document.cookie = updatedCookie;
 }

@@ -5,7 +5,7 @@ import sample.Pair;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
-public abstract class Expression implements Cloneable {
+public class Expression implements Cloneable {
 
     public enum Type {
         LEFT_BRACKET,
@@ -117,17 +117,16 @@ public abstract class Expression implements Cloneable {
         }
     }
 
-    public void setExpression(String var, Expression expression) {
-        if (this.type == Type.VAR) {
+    public void setExpression(String var, Expression expression, boolean rewrite) {
+        if (this.type == Type.VAR && (rewrite || rightExpression == null)) {
                 if (name.equals(var)) {
                     setRightExpression(expression);
                 }
-        } else {
-            if (leftExpression != null)
-                leftExpression.setExpression(var, expression);
-            if (rightExpression != null)
-                rightExpression.setExpression(var, expression);
         }
+            if (leftExpression != null)
+                leftExpression.setExpression(var, expression, rewrite);
+            if (rightExpression != null)
+                rightExpression.setExpression(var, expression, rewrite);
     }
 
     public ArrayList<String> getVars() {
@@ -140,6 +139,18 @@ public abstract class Expression implements Cloneable {
         if (rightExpression != null)
             vars.addAll(rightExpression.getVars());
         return (ArrayList<String>) vars.stream().distinct().collect(Collectors.toList());
+    }
+
+    public ArrayList<Expression> getExpressions(Type type) {
+        ArrayList<Expression> expressions = new ArrayList<>();
+        if (this.type == type) {
+            expressions.add(this);
+        }
+        if (leftExpression != null)
+            expressions.addAll(leftExpression.getExpressions(type));
+        if (rightExpression != null)
+            expressions.addAll(rightExpression.getExpressions(type));
+        return expressions;
     }
 
     public boolean contains(String name) {
@@ -189,9 +200,9 @@ public abstract class Expression implements Cloneable {
         }
     }
 
-    public abstract double getVal();
-    public abstract Expression getDerivative(String var);
-    public abstract Expression getIntegral();
+    public double getVal() {return  0;};
+    public Expression getDerivative(String var) { return null; };
+    public Expression getIntegral() { return null;};
 
     public Expression clone() throws CloneNotSupportedException
     {
@@ -214,6 +225,19 @@ public abstract class Expression implements Cloneable {
         if (rightExpression != null) {
             rightExpression.parent = this;
         }
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return super.equals(obj) || (
+                        obj != null
+                        && (getClass().isInstance(obj)
+                        && ((Expression)obj).type == this.type
+                        && ((Expression)obj).priority == this.priority)
+                        && ((Expression)obj).toString().equals(this.toString())
+                        && (leftExpression == ((Expression) obj).leftExpression || leftExpression.equals(((Expression)obj).leftExpression))
+                        && (rightExpression == ((Expression) obj).rightExpression || rightExpression.equals(((Expression)obj).rightExpression))
+        );
     }
 
     public boolean fillExpressions() {

@@ -233,8 +233,9 @@ public class ExpressionFactory {
                             addExpression(expressions, new Sum());
                             break;
                         case '-':
-                            if (expressions.isEmpty() || expressions.get(expressions.size()-1).type == Expression.Type.DIVIDER ||
-                                    expressions.get(expressions.size()-1).type == Expression.Type.FUNCTION) {
+                            if (expressions.isEmpty() || expressions.get(expressions.size()-1).type == Expression.Type.DIVIDER
+                                    || expressions.get(expressions.size()-1).type == Expression.Type.FUNCTION
+                                    || expressions.get(expressions.size()-1).type == Expression.Type.EQUALITY) {
                                 addExpression(expressions, new Sub(null));
                             } else {
                                 addExpression(expressions, new Sub());
@@ -430,7 +431,7 @@ public class ExpressionFactory {
                 series2 = new Mul(series2, getSeries(expression2, "polynomPar", copyPoints, "*"));
 
 
-                series2.setExpression(polynomVar, points.get(i).leftExpression);
+                series2.setExpression(polynomVar, points.get(i).leftExpression, true);
                 series2.replaceVar(polynomVar);
                 mainExpression = new Sum(mainExpression, new Mul(new Div(series, series2), points.get(i).rightExpression));
             }
@@ -474,7 +475,7 @@ public class ExpressionFactory {
         try {
             for (; from <= to; from += step) {
                 Expression iterationExpression = expression.clone();
-                iterationExpression.setExpression(var, values.get(from));
+                iterationExpression.setExpression(var, values.get(from), true);
                 iterationExpression.replaceVar(var);
                 if (operation.equals("*")) {
                     seriesExpression = new Mul(seriesExpression, iterationExpression.clone());
@@ -508,24 +509,47 @@ public class ExpressionFactory {
         }
     }
 
-    public static ArrayList<Pair<Double, Double>> getPoints(Expression expression, String varName, double from, double to, int size) {
-        double leng = to - from;
-        double step = leng / (size-1);
+    public static ArrayList<Pair<Double, Double>> getPoints(Expression expression, String varName, double from, double to, int minSize, double eps) {
+        double leng = Math.abs(to - from);
+        double step = leng / (minSize-1);
         Pair<Double, Double> pair;
+        int doubleAcc = 0;
         ArrayList<Pair<Double, Double>> points = new ArrayList<>();
-        for (double i = 0; i < size; i++) {
+        for (double i = 0; i < minSize || from <= to; i++) {
             pair = new Pair<>(from, expression.setValue(varName, from).getVal());
+            if (eps > 0 && !points.isEmpty() && !Double.isNaN(pair.value)) {
+                if (Math.abs(pair.value - points.get(points.size()-1).value) > eps / step) {
+                    if (doubleAcc < 3) {
+                        i--;
+                        step /= 2;
+                        doubleAcc++;
+                        continue;
+                    }
+                } else if (doubleAcc > 0) {
+                    doubleAcc--;
+                    step *= 2;
+                }
+            }
             points.add(pair);
             from += step;
         }
         return points;
     }
-    public static ArrayList<Pair<Double, Double>> getPoints(ArrayList<Expression> expressions, String varName, double from, double to, int size) {
+
+    public static ArrayList<Pair<Double, Double>> getPoints(Expression expression, String varName, double from, double to, int minSize) {
+       return getPoints(expression, varName, from, to, minSize,0);
+    }
+
+    public static ArrayList<Pair<Double, Double>> getPoints(ArrayList<Expression> expressions, String varName, double from, double to, int minSize, double eps) {
         ArrayList<Pair<Double, Double>> points = new ArrayList<>();
         for (Expression expression : expressions) {
-            points.addAll(getPoints(expression, varName, from, to, size));
+            points.addAll(getPoints(expression, varName, from, to, minSize, eps));
             points.add(new Pair<>(Double.NaN, Double.NaN));
         }
         return points;
     }
+    public static ArrayList<Pair<Double, Double>> getPoints(ArrayList<Expression> expressions, String varName, double from, double to) {
+       return getPoints(expressions, varName, from, to, Math.min((int)Math.abs(to-from), 50) , 0);
+    }
+
 }
