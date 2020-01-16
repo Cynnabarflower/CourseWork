@@ -16,16 +16,16 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class Main extends Application {
+public class Main  {
 
-    static WebEngine webEngine = null;
+   // static WebEngine webEngine = null;
     public static String inputExpression = "inputExpression";
     public static String inputExpressionValue = "inputExpressionValue";
     public static String derivativeExpression = "derivativeExpression";
     public static String derivativeExpressionValue = "derivativeExpressionValue";
     private static Map<String, UserSettings> userSettings;
 
-    @Override
+ /*   @Override
     public void start(Stage primaryStage) throws Exception{
         WebView browser = new WebView();
 
@@ -46,7 +46,7 @@ public class Main extends Application {
         primaryStage.setHeight(400);
 
         primaryStage.show();
-    }
+    }*/
 
     public void printLog(String s) {
         System.out.println("js: "+s);
@@ -146,13 +146,13 @@ public class Main extends Application {
         displayOutput(inputExpression, s);
     }
 
-    public static void displayGraph(ArrayList<Pair<Double, Double>> points, int id) {
+/*    public static void displayGraph(ArrayList<Pair<Double, Double>> points, int id) {
         JSObject windowObject = (JSObject)webEngine.executeScript("window");
         windowObject.setMember("graphPoints", points);
         windowObject.setMember("graphId", id);
         webEngine.executeScript("drawGraph(graphPoints, graphId)");
        // windowObject.call("drawGraph", points);
-    }
+    }*/
 
     public static void addVars(ArrayList<String> vars) {
 /*        JSObject windowObject = (JSObject)webEngine.executeScript("window");
