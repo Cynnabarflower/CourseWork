@@ -2,17 +2,17 @@ package sample;
 
 import com.alibaba.fastjson.JSONObject;
 import javafx.application.Application;
-import javafx.geometry.Insets;
-import javafx.scene.Scene;
-import javafx.scene.layout.VBox;
-import javafx.scene.web.WebEngine;
-import javafx.scene.web.WebView;
 import javafx.stage.Stage;
-import netscape.javascript.JSObject;
 import sample.Expressions.Expression;
 import sample.Expressions.ExpressionFactory;
+import sample.Expressions.Val;
+import sample.Expressions.Var;
 
+import java.awt.*;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -24,6 +24,7 @@ public class Main  {
     public static String derivativeExpression = "derivativeExpression";
     public static String derivativeExpressionValue = "derivativeExpressionValue";
     private static Map<String, UserSettings> userSettings;
+    public static ArrayList<WrongExpressionException> warnings = new ArrayList<>();
 
  /*   @Override
     public void start(Stage primaryStage) throws Exception{
@@ -56,6 +57,7 @@ public class Main  {
     public static void main(String[] args) {
         String[] colorsArr = {"0xff0000", "0x00ff00", "0x0000ff", "0xffff00", "0x00ffff", "0xff00ff", "0x000000"};
         new Main();
+
        // new MyServer();
 /*        readExpressionsFromFile();
         String args2[] = {"C:\\Users\\Dmitry\\IdeaProjects\\CourseWork\\resources"};
@@ -81,12 +83,24 @@ public class Main  {
         //getExpressionsFromFile();
         userSettings = new HashMap<>();
         String index = "C:\\Users\\Dmitry\\IdeaProjects\\CourseWork\\resources";
-        new http.Server(index, 8000);
+        new Server(index, 8000);
+
+        Application.launch(JavaFXBrowser.class);
+
+        if (false) {
+            try {
+                Desktop.getDesktop().browse(new URL("http://localhost:8000").toURI());
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
+            }
+        }
+
     }
 
     public static UserSettings getDefaultSettings() {
-        //ArrayList<Pair<String, Expression>> eqExpressions = new ArrayList<>();
-        //String textExpressions[] = {};
+
         String stringExp = "";
         try {
             //textExpressions = new String(Main.class.getResource("/defaultExpressions.txt").openStream().readAllBytes()).split("[;\n\r]+");
@@ -94,23 +108,14 @@ public class Main  {
         } catch (IOException e) {
             e.printStackTrace();
         }
-/*        for (String textExpression : textExpressions) {
-            try {
-                ArrayList <Expression> expressions =  ExpressionFactory.getExpressionTree(textExpression, null);
-                for (Expression expression : expressions)
-                    if (expression.type == Expression.Type.EQUALITY && expression.leftExpression.type == Expression.Type.VAR) {
-                        eqExpressions.add(new Pair<>(expression.leftExpression.name, expression.rightExpression));
-                    }
-            } catch (WrongExpressionException e) {
-                e.printStackTrace();
-            }
-        }*/
+
+
         return new UserSettings(stringExp);
 
     }
 
 
-    public static void setUserSettings(String id, String text) {
+    public static void setUserSettings(String id, String text, double fromX, double toX) {
         String textExpressions[] = text.split("[;\n\r]+");
   //      ArrayList<Pair<String, Expression>> eqExpressions = new ArrayList<>();
 /*        for (String textExpression : textExpressions) {
@@ -124,7 +129,11 @@ public class Main  {
                 e.printStackTrace();
             }
         }*/
-        userSettings.put(id, new UserSettings(text.replaceAll("[\n\r]+", "\n")));
+        UserSettings tempUserSettings = new UserSettings();
+        tempUserSettings.setDefaultExpressions(text);
+        tempUserSettings.setX(fromX, toX);
+
+        userSettings.put(id, tempUserSettings);
     }
 
     public static UserSettings getUserSettings(String id) {
@@ -139,10 +148,13 @@ public class Main  {
         windowObject.setMember("resultString", s);
         windowObject.setMember("id", id);
         webEngine.executeScript("setText(id, resultString)");*/
+        System.out.println(s);
     }
 
 
     public static void showException(String s) {
+
+        System.err.println(s);
         displayOutput(inputExpression, s);
     }
 
@@ -164,77 +176,83 @@ public class Main  {
 
     public static ArrayList<String> getVars(String s) {
         ArrayList<String> vars = new ArrayList<>();
-        try {
+
         ArrayList<Expression> expressions = ExpressionFactory.getExpressionTree(s, null);
         for (var expression : expressions)
             vars.addAll(expression.getVars());
-        } catch (WrongExpressionException e) {
-            return null;
-        }
+
         return  ((ArrayList<String>) vars.stream().distinct().collect(Collectors.toList()));
     }
 
 
     public static JSONObject readIt(String id, String s, String varNames) {
 
-        ArrayList<String> vars = new ArrayList<>();
+        ArrayList<Expression> vars = new ArrayList<>();
         ArrayList<Pair<String, Expression>> varValues = new ArrayList<>();
         ArrayList<String> varsFromExpressions = new ArrayList<>();
+        UserSettings currentSettings = getUserSettings(id);
+        vars.addAll(currentSettings.expressions);
+       // vars.addAll(currentSettings.getExpressionsMap().keySet());
         if (!varNames.isEmpty()) {
-            try {
-                ArrayList<Expression> expressions = ExpressionFactory.getExpressionTree(varNames, null);
+
+                ArrayList<Expression> expressions = ExpressionFactory.getExpressionTree(varNames, vars);
                 for (Expression expression : expressions) {
                     if (expression.type == Expression.Type.EQUALITY) {
-                        vars.add(expression.leftExpression.name);
-                        varValues.add(new Pair<>(expression.leftExpression.name, expression.rightExpression));
+                        try {
+                            vars.add(expression.getChild(0).clone().addChild(expression.getChild(1).clone()));
+                        } catch (CloneNotSupportedException e) {};
+                        varValues.add(new Pair<>(expression.getChild(0).name, expression.getChild(1)));
                     } else {
-                        vars.add(expression.name);
+                        vars.add(expression);
                     }
                 }
-            } catch (WrongExpressionException e) {
-                showException("Incorrect var values: "+e.getMessage());
-                return null;
             }
-            }
+       // vars = ((ArrayList<String>) vars.stream().distinct().collect(Collectors.toList()));
+
+        for (var i = vars.size()-1; i > 0; i--)
+            for (var j = 0; j < i; j++)
+                if (vars.get(i).name.equals(vars.get(j).name)) {
+                    vars.remove(j);
+                    j--;
+                    i--;
+                }
 
         try {
-
-
             ArrayList<Expression> expressions = ExpressionFactory.getExpressionTree(s, vars);
             ArrayList<Expression> optimizedExpressions = new ArrayList<>();
-            ArrayList<Expression> defaultExpressions = getUserSettings(id).expressions;
-            for (var def : defaultExpressions)
-                vars.addAll(def.getVars());
+            ArrayList<Expression> defaultExpressions = currentSettings.expressions;
+            //vars.addAll(defaultExpressions);
 
             for (Expression expression : expressions) {
                 if (expression != null) {
-                    Expression newExpression = null;
+
+                  /*  Expression newExpression = null;
                     int iteration = 0;
                     while (true) {
                         newExpression = expression.clone();
                         for (var ex : defaultExpressions) {
-                            newExpression.setExpression(ex.leftExpression.name, ex.rightExpression, false);
+                            newExpression.setExpression(ex.getChild(0).name, ex.getChild(1), true);
                         }
                         if (expression.equals(newExpression) || iteration > 100) {
                             break;
                         }
                         expression = newExpression.clone();
                         iteration++;
+                    }*/
+                   // expression.setExpressions(varValues);
 
-                    }
-                    expression.setExpressions(varValues);
-
-                    Expression der = expression.getDerivative("x").getOptimized();
-                    der = ExpressionFactory.optimize(der);
+                    //Expression der = expression.getDerivative("x").getOptimized();
+                   // der = ExpressionFactory.optimize(der);
                     displayOutput(inputExpression, expression.toString());
-                    displayOutput(inputExpressionValue, "" + expression.getVal());
-                    displayOutput(derivativeExpression, der.toString());
-                    displayOutput(derivativeExpressionValue, "" + der.getVal());
+                    var args = new ArrayList<Expression>();
+                    args.add(new Var("x", 0.785));
+                    displayOutput(inputExpressionValue, "" + expression.getVal(args));
+                   // displayOutput(derivativeExpression, der.toString());
+                   // displayOutput(derivativeExpressionValue, "" + der.getVal());
                     System.out.println(expression);
-                    System.out.println(der);
-                    System.out.println("d/dx: " + der);
-                    System.out.println("d/dx(12) " + der.getVal());
-                    System.out.println("f(12) " + expression.getVal());
+                   // System.out.println(der);
+                  //  System.out.println("d/dx: " + der);
+                   // System.out.println("d/dx(12) " + der.getVal());
                     System.out.println();
                     varsFromExpressions.addAll(expression.getVars());
                     if (expression.contains(Expression.Type.EQUALITY)) {
@@ -246,22 +264,45 @@ public class Main  {
                 varsFromExpressions = ((ArrayList<String>) varsFromExpressions.stream().distinct().collect(Collectors.toList()));
                 optimizedExpressions.add(expression);
             }
+            StringBuilder expressionString = new StringBuilder();
+            for (Expression expression : optimizedExpressions) {
+                expressionString.append(expression.toString());
+                expressionString.append("; ");
+            }
 
-            String varName = varsFromExpressions.contains("x") ? "x" : varsFromExpressions.contains("y") ? "y" : varsFromExpressions.size() > 0 ? varsFromExpressions.get(0) : "";
-            ArrayList<Pair<Double, Double>> points = ExpressionFactory.getPoints(optimizedExpressions, varName, -5, 5, 100, 0.01);
+            String varName = "x";// varsFromExpressions.contains("x") ? "x" : varsFromExpressions.contains("y") ? "y" : varsFromExpressions.size() > 0 ? varsFromExpressions.get(0) : "";
+            ArrayList<Pair<Double, Double>> points = ExpressionFactory.getPoints(optimizedExpressions, varName, currentSettings.fromX, currentSettings.toX, 100, 0.01);
             varsFromExpressions.removeAll(vars);
+            if (!warnings.isEmpty()) {
+                expressionString.append('\n');
+                warnings.forEach((w) -> {
+                    expressionString.append(w.toString("RU"));
+                });
+                warnings.clear();
+            }
             Map<String, Object> map = new HashMap<>();
             map.put("points", points.toArray());
-            map.put("expression", "bla-bla");
+            map.put("message", expressionString.toString());
             map.put("vars", varsFromExpressions.toArray());
             //  map.put("varTitles", expression.getExpressions(Expression.Type.VAR).toArray());
             return new JSONObject(map);
 
         } catch (Exception e) {
-            displayOutput(inputExpression, e.getMessage());
             e.printStackTrace();
+            var sb = new StringBuilder();
+            warnings.forEach((w) -> { sb.append( w.toString("RU")); });
+            warnings.clear();
+            Map<String, Object> map = new HashMap<>();
+            map.put("points", new int[]{});
+            map.put("message", sb.toString());
+            map.put("vars", varsFromExpressions.toArray());
+            //  map.put("varTitles", expression.getExpressions(Expression.Type.VAR).toArray());
+            return new JSONObject(map);
+           // displayOutput(inputExpression, e.getMessage());
+
+           // return null;
         }
-        return null;
+
     }
 }
 // Mul(Pow(12.0,Sub(12.0,1.0)),12))

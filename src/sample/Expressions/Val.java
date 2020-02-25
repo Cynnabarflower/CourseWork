@@ -6,7 +6,7 @@ import java.util.ArrayList;
 
 public class Val extends Expression {
     @Override
-    public double getVal() {
+    public double getVal(ArrayList<Expression> args) {
         return val;
     }
 
@@ -21,7 +21,7 @@ public class Val extends Expression {
     }
 
     public Val(double val) {
-        super(val, "Val", Type.VALUE, ArgumentPosition.NONE, 0, 0, null, null);
+        super(val, "Val", Type.VALUE, ArgumentPosition.NONE, 0, 0, null);
     }
 
     @Override

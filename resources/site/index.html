@@ -1,83 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Responsive Tabs</title>
-  <meta name="description" content="Responsive tabbed layout component built with some CSS3 and JavaScript">
-  <link rel="stylesheet" href="style.min.css">
-  <link rel="icon" type="image/png" href="/favicon.png">
-  <script src="phaser.min.js"></script>
-  <script src="piklor.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0">
+    <title>CW</title>
+    <meta name="description" content="">
+    <link rel="stylesheet" href="style.min.css">
+    <script src="phaser.min.js"></script>
+    <script src="piklor.min.js"></script>
 </head>
 <body>
-  
-<main class="o-main" style="width: 100%; height: 100%">
-  <div class="o-container" style="width: 100%; height: 100%">
 
-    <div class="o-section" style="width: 100%; height: 100%">
-      <div id="tabs" class="c-tabs no-js" style="width: 100%; height: 100%">
-        <div class="c-tabs-nav" >
-          <a href="#" class="c-tabs-nav__link is-active">
-            <i class="fa fa-home"></i>
-            <span>Text</span>
-          </a>
-          <a href="#" class="c-tabs-nav__link">
-            <i class="fa fa-book"></i>
-            <span>Settings</span>
-          </a>
-        </div>
-        <div class="c-tab is-active" style="width: 100%; height: 100%">
-          <div class="c-tab__content" style="width: 100%; height: 100%">
+    <div class="tabs">
+        <input id="tab1" type="radio" name="tabs" checked>
+        <label for="tab1" title="Вкладка 1">Вкладка 1</label>
 
-            <table width="100%" cellspacing="5" cellpadding="5" style=" valign = 'top'">
-              <tr>
-                <td style = 'width="50%" valign="top" '>
-                  <expressions id="expressions"></expressions>
-                  <div> <input type="submit" id = "addExpression" value = "+" onclick = "addExpression()"></div>
-                  <p><output id = "inputExpression"></output>  (<output id = "inputExpressionValue">0</output>)</p>
-                  <p><output id = "derivativeExpression"></output>  (<output id = "derivativeExpressionValue">0</output>)</p>
-                </td>
-                <td id = 'vars_place' style = 'width="20%" valign="top"'>
+        <input id="tab2" type="radio" name="tabs">
+        <label for="tab2" title="Вкладка 2">Вкладка 2</label>
+        <section id="content-tab1">
+                        <table width="100%" cellspacing="5" cellpadding="5" style=" valign = 'top' position: relative; display: inline-block;">
+                            <tr>
+                                <td style='width="50%" valign="top" min-width="50%"'>
+                                    <expressions id="expressions"></expressions>
 
-                </td>
-                <td style = 'width="500px" valign="top"'>
+                                    <div style="height:3em; position: absolute; margin: 5px" ><input type="image" id="updateAllExpressions" value="update" onclick="updateAllExpressions()" src="refresh.png" style="height:100%">
+                                        <input type="image"  id="addExpression" value="+" onclick="addExpression()" src="plus.png" style="height:100%">
+                                    </div>
 
-                  <div id = "graph_place"> </div>
-                </td>
-              </tr>
-            </table>
+                                </td>
+                                <td id='vars_place' style='width="20%" valign="top"'>
+                                </td>
+                                <td style='width="500px" valign="top"'>
+
+                                    <div id="graph_place"></div>
+                                    <div><input id='zoomRange' type='range' min=-1 max=150 step=5 width='inherit'
+                                                value=-1 oninput="cellSizeChanged(this)"> <input type="submit"
+                                                                                                 id="reloadPhaser"
+                                                                                                 value="reload"
+                                                                                                 onclick="reload()">
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+        </section>
+        <section id="content-tab2">
+                        <h2>Default expressions:</h2>
+                        <textarea id='defaultExpressions' style="width: 100%; height: 100px" name="FindString" value=""
+                                  size=100%></textarea>
+                        <div>x [<input type="number" size="8" id="fromX" style='font-size: 16px'>;<input type="number"
+                                                                                                         size="8"
+                                                                                                         id="toX"
+                                                                                                         style='font-size: 16px'>]
+                        </div>
+                        <div>precision: <input type="number" size="8" id="precision" style='font-size: 16px'> (number of
+                            element series)
+                        </div>
+                        <input type="submit" id="saveSettings" value="Save" onclick="saveSettings()">
+                        <input type="submit" id="getSettings" value="Load" onclick="getSettings()">
+                        <input type="submit" id="getDefaultSettings" value="Default" onclick="getDefaultSettings()">
+                        <h3>Docs</h3>
+                        <p>Для вычисления выражения введите его в поле и нажмите enter.<br>
+                            Поддерживаются следующие функции:<br>
+                            + - * / - арифметические операторы<br>
+                            |x| или abs(x) - модуль x<br>
+                            [x] или floor(x) - целая часть x<br>
+                            log(base, x) - логарифм x по основанию base<br>
+                            ln(x) - натуральный логарифм x<br>
+                            ?(a, b, c) - тернарный оператор, если a > 0 возвращает b, иначе - c<br>
+                            {a,b} - точка с координатами a, b. Последовательность точек преобразуется в многочлен.<br>
+                            () - скобки<br>
+                            (f(x))' - производная по x<br>
+                            Остальные функции можно посмотреть и изменить в поле 'Default expressions'<br>
+                            Любая последовательность букв, для которой не найдено соответствие будет расцениватьсчя как переменная.<br>
+                            Если выражение успешно прочиано, его упрощенная версия появится под полем ввода и будет построен график.<br>
+                            Цвет графика можно изменить нажав на круг рядом с полем ввода.<br>
+                            Если не удалось прочитать выражение, под полем ввода будет выведено сообщение об ошибке.<br>
+                            Возможные ошибки и способы их решения:<br>
+                            Некорректные скобки,<br>
+                            Неверные аргументы, Неверное количество аргументов - расставьте больше скобок,<br>
+                            Некорректное равенство - в левой часи равенства должно стоять имя переменной и ничего больше,<br>
+                            Пропущен оператор.<br>
 
 
-            <script src="app.js"></script>
-          </div>
-        </div>
-        <div class="c-tab" style="width: 100%; height: 100%">
-          <div class="c-tab__content" style="width: 100%; height: 100%">
-            <h2>All Books</h2>
-            <textarea id='defaultExpressions'  style="width: 100%; height: 100px" name="FindString" value="" size=100%></textarea>
-            <input type="submit" id = "saveSettings" value = "Save" onclick = "saveSettings()">
-            <input type="submit" id = "getSettings" value = "Load" onclick = "getSettings()">
-            <input type="submit" id = "getDefaultSettings" value = "Default" onclick = "getDefaultExpressions()">
-          </div>
-          </div>
+                        </p>
+        </section>
 
-        </div>
-      </div>
+        <script src="app.js"></script>
     </div>
-
-  </div>
-</main>
-
-<script src="tabs.js"></script>
-<script>
-  var myTabs = tabs({
-    el: '#tabs',
-    tabNavigationLinks: '.c-tabs-nav__link',
-    tabContentContainers: '.c-tab'
-  });
-  myTabs.init();
-</script>
 
 </body>
 </html>

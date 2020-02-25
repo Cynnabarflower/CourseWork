@@ -3,15 +3,22 @@ var graphPoints;
 var text;
 var graphWidth;
 var graphHeight;
-var minX = 99999999;
-var minY = 99999999;
-var maxX = -9999999;
-var maxY = -9999999;
-var graphs;
+var minX =  99999999;
+var minY =  99999999;
+var maxX = -99999999;
+var maxY = -99999999;
+var graphs = new Map();
 var context;
-var expressionNumber;
-var vars;
-
+var expressionNumber = 0;
+var vars = new Map();
+var zoomText;
+var gridStep = 1;
+var manualZoom = -1;
+var labelText;
+var lastPointer = null;
+var pointerdown = false;
+var secondClick = false;
+var cameraMoved = false;
 
 
 function addColorPicker(expressionNumber) {
@@ -38,7 +45,7 @@ function addColorPicker(expressionNumber) {
          console.log(graphs.size)
         obj = graphs.get(id);
         if (!!obj) {
-            obj.lineColor = Number("0x" + col.replace("#", ""));
+            obj.lineColor = ("0x" + col.replace("#", ""));
             graphs.set(id, obj)
         }
 
@@ -72,7 +79,8 @@ var config = {
         mode: Phaser.Scale.NONE,
         autoCenter: Phaser.Scale.NO_CENTER
     },
-    backgroundColor: '#ffffff',
+    transparent: true,
+    //backgroundColor: 'rgba(0,0,0,0)',
     dom: {
         createContainer: true
     },
@@ -84,6 +92,20 @@ var config = {
 
 var game = new Phaser.Game(config);
 
+addExpression();
+
+function reload() {
+    if (game) {
+        /*context = game.scene.keys.default;
+        context.registry.destroy();
+        context.events.off();
+        context.scene.restart();*/
+        graphs = new Map();
+        game.destroy(true);
+        game = new Phaser.Game(config);
+        updateAllExpressions();
+    }
+}
 
 function create() {
     var settings_id = getCookie("settings_id");
@@ -91,13 +113,10 @@ function create() {
         settings_id = Math.random(Date.now()).toString().substr(2, 9);
         setCookie("settings_id", settings_id);
     }
-    expressionNumber = 0;
+
     context = this;
     graphWidth = 100;
     graphHeight = 100;
-    graphs = new Map();
-    vars = new Map();
-    text = this.add.text(0, 0, 'text123');
     graphics = this.add.graphics();
 
     follower = {
@@ -106,60 +125,156 @@ function create() {
     };
 
     //  Path starts at 100x100
-    path = new Phaser.Curves.Path(10, 10);
+   // path = new Phaser.Curves.Path(10, 10);
 
-    path.lineTo(300, 170);
+   // path.lineTo(300, 170);
 
     // cubicBezierTo: function (x, y, control1X, control1Y, control2X, control2Y)
-    path.cubicBezierTo(200, 20, 67, 43, 88, 10);
+    //path.cubicBezierTo(200, 20, 67, 43, 88, 10);
 
-    getDefaultExpressions();
+    getSettings(null);
 
-    addExpression();
+    //addExpression();
 
-}
+    zoomText = this.add.text(5, 10, 'gridStep').setColor('#0000ff').setOrigin(0);
+    labelText = this.add.text(0, 0, '').setOrigin(0, 1);
 
-function getDefaultExpressions() {
-    var url = "http://localhost:8000/defaultExpressions.txt";
+    updateMinMax();
 
-    fetch(url, {
-                 method: 'GET',
-                 headers: {
-                   'Content-Type': 'application/json;charset=utf-8'
-                 }
-                 })
-      .then(response => response.text())
-      .then(response =>
-        {
-            console.log(response)
-            document.getElementById("defaultExpressions").value = response;
-        }
-      );
+/*    this.input.on('pointerover', function(pointer){
+        var touchX = pointer.x;
+        var touchY = pointer.y;
+        alert(touchX + '; ' + touchY);
+     });*/
+
+/*     this.input.on('pointerup', function(pointer){
+        //console.log(pointer.worldX + '; '+pointer.worldY);
+
+     }, this);*/
+
+     this.input.on('pointerdown', function(pointer){
+
+         lastPointer = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+         pointerdown = true;
+
+      });
+           this.input.on('pointerup', function(pointer){
+
+               pointerdown = false;
+
+
+               if (!secondClick) {
+                   secondClick = true;
+                   setTimeout(function() { secondClick = false }, 300);
+               } else {
+                   secondClick = false;
+                   cameraMoved = false;
+                   manualZoom = -1;
+                   document.getElementById("zoomRange").value = -1;
+               }
+
+           });
+
+               this.input.on('wheel', function (pointer, gameObjects, deltaX, deltaY, deltaZ) {
+
+                   var rangeElement = document.getElementById("zoomRange");
+                    rangeElement.value = Math.min(Math.max(parseInt(rangeElement.value) - parseInt(rangeElement.step) * (deltaY > 0 ? 1 : -1), rangeElement.min), rangeElement.max);
+                    var localPointer = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+                    //this.cameras.main.centerOn(localPointer.x, localPointer.y);
+                    cameraMoved = true;
+                    cellSizeChanged(rangeElement)
+               });
+
 }
 
 function update() {
     graphics.clear();
 
-    this.cameras.main.setScroll((minX + maxX - this.cameras.main.width) / 2, (-(minY + maxY) - this.cameras.main.height) / 2);
-    var zoomY = this.cameras.main.height / ((maxY - minY) * 1.1 + 5)
-    var zoomX = this.cameras.main.width / ((maxX - minX) * 1.1 + 5);
-    this.cameras.main.setZoom(Math.min(zoomX, zoomY));
+        var zoomY = this.cameras.main.height / ((maxY - minY) * 1 + 1)
+        var zoomX =   this.cameras.main.width / ((maxX - minX) * 1 + 1);
+            if (manualZoom > 0) {
+                zoomX = zoomY = manualZoom;
+            }
+        this.cameras.main.setZoom(Math.min(zoomX, zoomY));
+        pointer = this.cameras.main.getWorldPoint(this.input.x, this.input.y);
 
-    graphics.lineStyle(2 / this.cameras.main.zoom, 0x111111, 0.5);
+        if (pointerdown) {
+            var dx = pointer.x - lastPointer.x;
+            var dy = pointer.y - lastPointer.y
+            this.cameras.main.scrollX -= dx;
+            this.cameras.main.scrollY -= dy;
+            cameraMoved = true;
+        } else if (!cameraMoved) {
+               this.cameras.main.centerOn((minX + maxX) / 2, -(minY + maxY) / 2);
+        }
+
+    graphics.lineStyle(1 / this.cameras.main.zoom, 0xAAAAAA, 1);
 /*    app.printLog(""+this.cameras.main.worldView.x+" "+this.cameras.main.worldView.y+"  "+this.cameras.main.worldView.width+" "+this.cameras.main.worldView.height);*/
-    graphics.strokeLineShape(new Phaser.Geom.Line(this.cameras.main.worldView.x, 0, minX+this.cameras.main.worldView.width, 0));
-    graphics.strokeLineShape(new Phaser.Geom.Line(0, this.cameras.main.worldView.y, 0, this.cameras.main.worldView.y+this.cameras.main.worldView.height));
-    graphics.strokeLineShape(new Phaser.Geom.Line(1, 1, 1, -1));
-    graphics.strokeLineShape(new Phaser.Geom.Line(1, -1, -1, -1));
+    var cameraMinX = Math.floor(this.cameras.main.worldView.x -1);
+    var cameraMaxX = Math.floor(this.cameras.main.worldView.x + this.cameras.main.worldView.width + 1);
+    var cameraMinY = Math.floor(this.cameras.main.worldView.y - 1);
+    var cameraMaxY = Math.floor(this.cameras.main.worldView.y + this.cameras.main.worldView.height + 1);
+    var zoom1 = Math.abs(this.cameras.main.zoom) / (this.cameras.main.worldView.width /this.cameras.main.worldView.height) / 2;
 
+        gridStep = 1;
+        while  (zoom1 > 1) {
+            gridStep /= 10;
+            zoom1 /= 10;
+        }
+        while (zoom1 < 1) {
+            gridStep *= 10;
+            zoom1 *= 10;
+        }
+
+
+    for (var i = cameraMinX; i < cameraMaxX; i+=gridStep)
+        graphics.strokeLineShape(new Phaser.Geom.Line(i, cameraMinY, i, cameraMaxY));
+    for (var i = cameraMinY; i < cameraMaxY; i+=gridStep)
+        graphics.strokeLineShape(new Phaser.Geom.Line(cameraMinX, i, cameraMaxX, i));
+
+    graphics.lineStyle(2 / this.cameras.main.zoom, 0x000000, 1);
+    graphics.strokeLineShape(new Phaser.Geom.Line(cameraMinX, 0, cameraMaxX, 0));
+    graphics.strokeLineShape(new Phaser.Geom.Line(0, cameraMinY, 0, cameraMaxY));
+
+    var drawingLabel = false;
     for (var [id, graph] of graphs) {
         graphics.fillStyle( graph.lineColor, 1);
         graph.path.getPoint(graph.follower.t, graph.follower.vec);
         graphics.lineStyle(3 / this.cameras.main.zoom, graph.lineColor, 1);
+
         graph.path.draw(graphics);
+        if (!drawingLabel && this.input.isOver && !this.game.input.activePointer.isDown) {
+                        if (graph.minX <= pointer.x && graph.maxX >= pointer.x) {
+                            if (graph.minY <= -pointer.y && graph.maxY >= -pointer.y) {
+                                for (var curve of graph.path.curves) {
+                                    var start = curve.getStartPoint();
+                                    var end = curve.getEndPoint();
+                                    if (pointer.x >= start.x && pointer.x <= end.x
+                                            && pointer.y >= Math.min(start.y, end.y) - gridStep && pointer.y <= Math.max(end.y, start.y) + gridStep) {
+                                            console.log(pointer.x + '; '+pointer.y);
+                                            var fooY = start.y + (end.y - start.y)*((pointer.x - start.x)/(end.x - start.x));
+                                            labelText.setText(pointer.x.toFixed(3)+'\n'+ (-fooY).toFixed(4));
+                                            labelText.setPosition(pointer.x, pointer.y);
+                                            labelText.setColor(graph.lineColor.replace('0x', '#'));
+                                            labelText.setScale(1/this.cameras.main.zoom);
+                                            labelText.setTintFill(0x555555);
+                                             drawingLabel = true;
+                                           break;
+                                    }
+                                }
+                            }
+                        }
+                       }
         graphics.fillCircle(graph.follower.vec.x, graph.follower.vec.y, 3 / this.cameras.main.zoom);
-    };
-    setText("derivativeExpressionValue", '' + minX + ' ' + minY + '   ' + '\n' + (maxX) + ' ' + (maxY) + '\n cam: ' + Math.min(zoomX, zoomY) + '  ' + (-(minY + maxY) - this.cameras.main.height) / 2);
+    }
+    labelText.setVisible(drawingLabel);
+
+    var gridStepY = this.cameras.main.worldView.y + Math.abs(this.cameras.main.worldView.height) * 0.05;
+    var gridStepX = this.cameras.main.worldView.x + Math.abs(this.cameras.main.worldView.width) * 0.05;
+   // graphics.strokeLineShape(new Phaser.Geom.Line(gridStepX, gridStepY, gridStepX+gridStep, gridStepY));
+    zoomText.setScale(1/this.cameras.main.zoom).setText(gridStep).setPosition(gridStepX, gridStepY, 0);
+
+
 }
 
 function rgb2hex(rgb) {
@@ -226,8 +341,6 @@ function drawGraph(points, id) {
             maxX = maxY = minX = minY = 0;
         }
 
-
-
         context.tweens.add({
             targets: follower,
             t: 1,
@@ -259,6 +372,7 @@ function drawGraph(points, id) {
                 lineColor: lineColor
         })
 
+
         updateMinMax();
     }
 }
@@ -273,8 +387,43 @@ function clicked(element) {
     readIt(getCookie("settings_id"), element.id.replace("textInput", ""), element.value,  varValues);
 }
 
-function readIt(id, graphId, element, varValues) {
-    var url = "http://localhost:8000/";
+function updateAllExpressions() {
+    var varValues = "";
+    for (var [name, value] of vars) {
+        varValues += name + ( value.chosen ? "="+value.value : "" ) + ";"
+         console.log(name+ " "+ value.value+" "+value.chosen);
+    }
+    var allVars = [];
+    var id = getCookie("settings_id");
+    if (graphs && graphs.size > 0) {
+        for (var [id] of graphs) {
+            var responseVars = [];
+            readIt(id, id, document.getElementById("textInput"+id).value ,varValues)
+            allVars.concat(responseVars);
+        }
+    } else if (expressionNumber > 0) {
+        for (var i = 0; i < expressionNumber; i++) {
+            var elem = document.getElementById("textInput"+i)
+            if (elem) {
+                var responseVars = [];
+                readIt(id, i, elem.value , varValues, responseVars)
+                allVars.concat(responseVars);
+            }
+        }
+    }
+    for (var [varName] of vars) {
+         var elem = document.getElementById("varContainer_"+varName);
+         if (elem)
+            elem.parentElement.removeChild(elem);
+    }
+    vars = new Map();
+    for (var varName of allVars)
+        addVar(varName, id, "");
+
+}
+
+function readIt(id, graphId, element, varValues, responseVars) {
+    var url = window.location.href;
     var options = {id : id, element : element, varValues : varValues}
 
     fetch(url, {
@@ -282,15 +431,17 @@ function readIt(id, graphId, element, varValues) {
                  headers: {
                    'Content-Type': 'application/json;charset=utf-8'
                  },
-                 body: JSON.stringify(options)
+                 body: encodeURIComponent(JSON.stringify(options))
                  })
       .then(response => response.json())
       .then(response =>
         {
             console.log(response)
+            document.getElementById("answer"+graphId).innerHTML = response.message;
             drawGraph(response.points, graphId);
             for (var i = 0; i < response.vars.length; i++)
                 addVar(response.vars[i], id, null);
+            responseVars = response.vars;
         }
       );
 }
@@ -298,21 +449,37 @@ function readIt(id, graphId, element, varValues) {
 function remove(id) {
     var child = document.getElementById("expression" + id);
     child.parentNode.removeChild(child);
+    child = document.getElementById("color-picker" + id);
+        child.parentNode.removeChild(child);
     if (graphs.delete(id)) {
         updateMinMax();
+        if (graphs.size == 1) {
+            var elem = document.getElementById("remove-button"+graphs.values()[0].id);
+            if (elem) {
+                elem.disabled = true;
+             }
+        }
     }
 }
 
 function updateMinMax() {
-    this.minX = this.minY = 99999999;
-    this.maxX = this.maxY = -9999999;
-    for (var [key, obj] of graphs) {
-        this.minX = Math.min(this.minX, obj.minX);
-        this.minY = Math.min(this.minY, obj.minY);
-        this.maxX = Math.max(this.maxX, obj.maxX);
-        this.maxY = Math.max(this.maxY, obj.maxY);
+
+    if (graphs.size) {
+        this.minX = this.minY =  99999999;
+        this.maxX = this.maxY = -99999999;
+        for (var [key, obj] of graphs) {
+            this.minX = Math.min(this.minX, obj.minX);
+            this.minY = Math.min(this.minY, obj.minY);
+            this.maxX = Math.max(this.maxX, obj.maxX);
+            this.maxY = Math.max(this.maxY, obj.maxY);
+        }
+    } else {
+            this.minX = this.minY =  -10;
+            this.maxX = this.maxY = 10;
     }
+
 }
+
 
 function addExpression() {
 
@@ -320,9 +487,10 @@ function addExpression() {
     var buttonName = "buttonSubmit" + expressionNumber;
     let div = document.createElement('div');
     div.className = "expressionClass";
-    div.innerHTML = "<expression id = \"expression" + expressionNumber + "\"><tr><input type=\"text\" size=\"30\" id = \"" + textName + "\" style = 'font-size: 16px'> <input type=\"submit\" id = \"" + buttonName + "\" value=\"Ок\" onclick=\"clicked(" + textName + ")\" style=\"display: none;\">" +
-        "<class=\"picker-wrapper\" id = \"picker-wrapper" + expressionNumber + "\"><button class=\"color-button\" id = \"color-button" + expressionNumber + "\"></button>" +
-        "<button class=\"remove-button\" id = \"remove-button" + expressionNumber + "\" onclick=\"remove(\'" + (expressionNumber) + "\')\"></button></tr></expression>"+
+    div.innerHTML = "<expression id = \"expression" + expressionNumber + "\" style='height:2em; white-space: nowrap;'><input type=\"text\" size=\"30\" id = \"" + textName + "\"> <input type=\"submit\" id = \"" + buttonName + "\" value=\"Ок\" onclick=\"clicked(" + textName + ")\" style=\"display: none;\">" +
+        "<class=\"picker-wrapper\" id = \"picker-wrapper" + expressionNumber + "\"><button class=\"color-button\" id = \"color-button" + expressionNumber + "\" style = 'display: inline-block'></button>" +
+        "<input type='image' id = \"remove-button" + expressionNumber + "\" onclick=\"remove(\'" + (expressionNumber) + "\')\" src= 'trash.png' style='height:2em; vertical-align: middle; display: inline-block'>"+
+        "<p id = 'answer"+expressionNumber+"' style = 'margin:0px'></p></expression>"+
         "<div class=\"color-picker\" id = \"color-picker" + expressionNumber + "\"></div>";
     expressions.append(div);
 
@@ -332,12 +500,18 @@ function addExpression() {
         document.getElementById(buttonName).click(textName);
          }
     });
+        document.getElementById(textName).addEventListener("blur", function(event) {
+
+           // event.preventDefault();
+          //  document.getElementById(buttonName).click(textName);
+        });
 
 
 
     addColorPicker(expressionNumber);
 
     expressionNumber++;
+
 }
 
 function updateVars(id, expression) {
@@ -380,7 +554,7 @@ function addVar(name, id, title) {
     if (document.getElementById('var_'+name) == null) {
             let div = document.createElement('div');
             div.className = "varClass";
-            div.innerHTML = "<input class='checkBox' type='checkbox' id=checkBox_"+name+" onchange = varChosen('"+name+"') >"+title+" = <input type=\"text\" size=\"10\" name = " + name + " id = \"var_" + name + "\">";
+            div.innerHTML = "<div id = 'varContainer_"+ name +"'<input class='checkBox' type='checkbox' id=checkBox_"+name+" onchange = varChosen('"+name+"') >"+title+" = <input type=\"text\" size=\"10\" name = " + name + " id = \"var_" + name + "\"></div>";
             vars_place.append(div);
 
             document.getElementById("var_"+name).addEventListener("keyup", function(event) {
@@ -404,20 +578,23 @@ function addVar(name, id, title) {
 }
 
 function saveSettings() {
- var url = "http://localhost:8000/";
+ var url = window.location.href;
    var defaultExpressions = document.getElementById("defaultExpressions").value;
+   var fromX = document.getElementById("fromX").value;
+   var toX = document.getElementById("toX").value;
+
    var settings_id = getCookie("settings_id");
    if (!!!settings_id) {
         settings_id = Math.random(Date.now()).toString().substr(2, 9);
         setCookie("settings_id", settings_id);
    }
-      var options = {defaultExpressions : defaultExpressions, settings_id : settings_id};
+      var options = {fromX : fromX, toX : toX, defaultExpressions : defaultExpressions, settings_id : settings_id};
        fetch(url, {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json;charset=utf-8'
                     },
-                    body: JSON.stringify(options)
+                    body: encodeURIComponent(JSON.stringify(options))
                     })
          .then(response => response.text())
          .then(response =>
@@ -426,20 +603,33 @@ function saveSettings() {
            })
 }
 
-function getSettings() {
-   var url = "http://localhost:8000/";
-      var options = {settings_id : getCookie("settings_id")};
+
+function cellSizeChanged(elem) {
+    var val = parseFloat(elem.value);
+    manualZoom = isNaN(val) ? 1 : val == 0 ? 1 : val
+}
+
+function getDefaultSettings() {
+    getSettings(-1);
+}
+
+
+function getSettings(settings_id) {
+   var url = window.location.href;
+      var options = {settings_id : settings_id == null ? getCookie("settings_id") : settings_id };
        fetch(url, {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json;charset=utf-8'
                     },
-                    body: JSON.stringify(options)
+                    body: encodeURIComponent(JSON.stringify(options))
                     })
-         .then(response => response.text())
+         .then(response => response.json())
          .then(response =>
            {
-            document.getElementById("defaultExpressions").value = response;
+            document.getElementById("defaultExpressions").value = response.defaultExpressions;
+            document.getElementById("fromX").value = response.fromX;
+            document.getElementById("toX").value = response.toX;
            })
 }
 

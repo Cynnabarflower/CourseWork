@@ -1,8 +1,11 @@
-package http;
+package sample;
 
 import com.sun.net.httpserver.*;
+import javafx.application.Application;
+import sample.JavaFXBrowser;
 import sample.StaticHandler;
 
+import java.awt.*;
 import java.io.*;
 import java.net.*;
 import java.util.HashMap;
@@ -16,8 +19,11 @@ public class Server {
         try {
             HttpServer httpServer = HttpServer.create();
             httpServer.createContext("/", new StaticHandler(index, false, false));
-            httpServer.bind(new InetSocketAddress("localhost", port), 100);
+            httpServer.bind(new InetSocketAddress(port), 100);
             httpServer.start();
+
+
+
         } catch (Throwable e) {
             e.printStackTrace();
         }

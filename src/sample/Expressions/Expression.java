@@ -2,7 +2,7 @@ package sample.Expressions;
 
 import sample.Pair;
 
-import java.util.ArrayList;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Expression implements Cloneable {
@@ -15,7 +15,8 @@ public class Expression implements Cloneable {
         VAR,
         EQUALITY,
         DERIVATIVE,
-        DIVIDER
+        DIVIDER,
+        REFERENCE
     }
 
     public enum ArgumentPosition {
@@ -31,32 +32,36 @@ public class Expression implements Cloneable {
     public ArgumentPosition argumentPosition;
     public int priority;
     public int numberOfArgs;
-    public Expression leftExpression = null;
-    public Expression rightExpression = null;
+/*    public Expression leftExpression = null;
+    public Expression rightExpression = null;*/
+    protected ArrayList<Expression> childExpressions = null;
     public Expression parent = null;
 
-    public Expression(double val, String name, Type type, ArgumentPosition argumentPosition, int priority, int numberOfArgs, Expression left, Expression right, Expression parent) {
+    public Expression(double val, String name, Type type, ArgumentPosition argumentPosition, int priority, int numberOfArgs, Expression parent, Expression... expressions) {
+        childExpressions = new ArrayList<>(2);
         this.val = val;
         this.name = name;
         this.priority = priority;
-        setLeftExpression(left);
-        setRightExpression(right);
+        if (expressions != null)
+            addChildren(List.of(expressions));
         this.type = type;
         this.argumentPosition = argumentPosition;
         this.numberOfArgs = numberOfArgs;
         this.parent = parent;
     }
 
-    public Expression(double val, String name, Type type, ArgumentPosition argumentPosition, int priority, int numberOfArgs, Expression left, Expression right) {
-        this(val, name, type, argumentPosition, priority, numberOfArgs, left, right, null);
+    public Expression(String name, ArgumentPosition argumentPosition, int priority, int numberOfArgs) {
+        this(0, name, Type.FUNCTION, argumentPosition, priority, numberOfArgs, null);
     }
 
     @Override
     public String toString() {
-        String left = leftExpression == null ? "" : leftExpression.toString();
-        String right = rightExpression == null ? "" : rightExpression.toString();
-        String name = type == Type.VALUE ? ""+val : type == Type.VAR? this.name : this.name+"("+left+","+right+")";
-        return name;
+        StringBuilder sb = new StringBuilder("(");
+        for (var child : childExpressions) {
+            sb.append(child.toString());
+            sb.append(", ");
+        }
+        return name + sb.toString() + ")";
     }
 
     public void setValues(ArrayList<Pair<String, Double>> varValues) {
@@ -67,10 +72,8 @@ public class Expression implements Cloneable {
                     break;
                 }
         }
-            if (leftExpression != null)
-                leftExpression.setValues(varValues);
-            if (rightExpression != null)
-                rightExpression.setValues(varValues);
+            for (var child : childExpressions)
+                child.setValues(varValues);
     }
 
     public Expression setValue(String var, double val) {
@@ -78,66 +81,105 @@ public class Expression implements Cloneable {
                 if (name.equals(var)) {
                     this.val = val;
                 }
+        } else if (type == Type.REFERENCE) {
+            return this;
         }
-        if (leftExpression != null)
-            leftExpression.setValue(var, val);
-        if (rightExpression != null)
-            rightExpression.setValue(var, val);
+
+        for (var child : childExpressions)
+            child.setValue(var, val);
         return this;
     }
 
-    public Expression replaceVar(String var) {
-        if (parent != null && type == Type.VAR && name.equals(var)) {
-            if (rightExpression == null) {
-                return new Val(val);
+    public Expression setType(Type type) {
+        this.type = type;
+        return  this;
+    }
+
+
+    public Expression replaceVar(String varName) {
+        if (type == Type.REFERENCE) {
+            return this;
+        }
+        for (var i = 0; i < childExpressions.size(); i++) {
+            var curretChild = childExpressions.get(i);
+            if (curretChild.type == Type.VAR && curretChild.name.equals(varName)) {
+                if (curretChild.getChildren().isEmpty())
+                    childExpressions.set(i, new Val(curretChild.getVal( new Var("") )));
+                else
+                    childExpressions.set(i,curretChild.getChild(0));
             } else {
-                return rightExpression.replaceVar(var);
+                curretChild.replaceVar(varName);
             }
-        } else {
-            if (leftExpression != null)
-                leftExpression = leftExpression.replaceVar(var);
-            if (rightExpression != null)
-                rightExpression = rightExpression.replaceVar(var);
         }
+
+        return this;
+    }
+    public Expression replaceVar(Expression varExpression) {
+        if (type == Type.REFERENCE) {
+            return this;
+        }
+        for (var i = 0; i < childExpressions.size(); i++) {
+            var curretChild = childExpressions.get(i);
+            if (curretChild.type == Type.VAR && curretChild.name.equals(varExpression.name)) {
+                childExpressions.set(i, varExpression.getChild(0));
+            } else {
+                curretChild.replaceVar(varExpression);
+            }
+        }
+
         return this;
     }
 
-    public void setExpressions(ArrayList<Pair<String, Expression>> varValues) {
-        if (this.type == Type.VAR) {
-            for (Pair<String, Expression> pair : varValues)
-                if (name.equals(pair.key)) {
-                    rightExpression = pair.value;
-                    break;
-                }
-        } else {
-            if (leftExpression != null)
-                leftExpression.setExpressions(varValues);
-            if (rightExpression != null)
-                rightExpression.setExpressions(varValues);
-        }
+    public Expression setExpressions(ArrayList<Expression> varValues) {
+        for (var varValue : varValues)
+            setExpression(varValue);
+        return this;
     }
 
-    public void setExpression(String var, Expression expression, boolean rewrite) {
-        if (this.type == Type.VAR && (rewrite || rightExpression == null)) {
-                if (name.equals(var)) {
-                    setRightExpression(expression);
+    public Expression setExpression(Expression expression) {
+        if (type == Type.REFERENCE) {
+            return this;
+        }
+        var i = 0;
+        if (this.type == Type.VAR || this.type == Type.FUNCTION) {
+                if (name.equals(expression.name)) {
+                    setChild(expression.getChild(0),0);
+                    i = 1;
                 }
         }
-            if (leftExpression != null)
-                leftExpression.setExpression(var, expression, rewrite);
-            if (rightExpression != null)
-                rightExpression.setExpression(var, expression, rewrite);
+        for (;i < childExpressions.size(); i++)
+            childExpressions.get(i).setExpression(expression);
+
+        return this;
     }
+
+    public Expression setReference(Expression expression) {
+        if (type == Type.REFERENCE) {
+            return this;
+        }
+        var i = 0;
+        if (this.type == Type.VAR || this.type == Type.FUNCTION) {
+            if (name.equals(expression.name)) {
+                var reference = new Var("Reference", expression.getChild(0)).setType(Type.REFERENCE);
+                setChild(reference,0);
+                i = 1;
+            }
+        }
+        for (;i < childExpressions.size(); i++)
+            childExpressions.get(i).setReference(expression);
+
+        return this;
+    }
+
 
     public ArrayList<String> getVars() {
         ArrayList<String> vars = new ArrayList<>();
         if (type == Type.VAR) {
             vars.add(name);
         }
-        if (leftExpression != null)
-            vars.addAll(leftExpression.getVars());
-        if (rightExpression != null)
-            vars.addAll(rightExpression.getVars());
+        if (type != Type.REFERENCE)
+            for (var child : childExpressions)
+                vars.addAll(child.getVars());
         return (ArrayList<String>) vars.stream().distinct().collect(Collectors.toList());
     }
 
@@ -146,16 +188,21 @@ public class Expression implements Cloneable {
         if (this.type == type) {
             expressions.add(this);
         }
-        if (leftExpression != null)
-            expressions.addAll(leftExpression.getExpressions(type));
-        if (rightExpression != null)
-            expressions.addAll(rightExpression.getExpressions(type));
+        for (var child : childExpressions)
+            expressions.addAll(child.getExpressions(type));
         return expressions;
     }
 
-    public boolean contains(String name) {
-        return this.name.equals(name) | (leftExpression != null && leftExpression.contains(name)) | (rightExpression != null && rightExpression.contains(name));
+    public ArrayList<Expression> getExpressions(String name) {
+        ArrayList<Expression> expressions = new ArrayList<>();
+        if (this.name.equals(name)) {
+            expressions.add(this);
+        }
+        for (var child : childExpressions)
+            expressions.addAll(child.getExpressions(name));
+        return expressions;
     }
+
 
     public boolean contains(ArrayList<String> names) {
         for (String name : names)
@@ -164,86 +211,280 @@ public class Expression implements Cloneable {
             return false;
     }
 
-    public boolean contains(Type type) {
-        return this.type == type | (leftExpression != null && leftExpression.contains(type)) | (rightExpression != null && rightExpression.contains(type));
+    public boolean contains(String name) {
+
+        if (this.name.equals(name))
+            return true;
+
+        if (type == Type.REFERENCE)
+            return childExpressions.get(0).name.equals(name);
+
+        for (var child : childExpressions)
+            if (child.contains(name))
+                return true;
+
+        return  false;
+    }
+
+
+    public boolean contains(Type type){
+        if (this.type == type)
+            return true;
+
+        var iter = childExpressions.iterator();
+        if (this.type == Type.REFERENCE)
+            return childExpressions.get(0).type == type;
+
+        while (iter.hasNext())
+            if (iter.next().contains(type))
+                return true;
+        return  false;
+    }
+
+
+    public boolean contains(Expression expression) {
+
+        if (this == expression)
+            return true;
+        if (type == Type.REFERENCE) {
+            return childExpressions.get(0) == expression;
+        }
+        var iter = childExpressions.iterator();
+        while (iter.hasNext())
+            if (iter.next().contains(expression))
+                return true;
+        return  false;
     }
 
     public int getExpressionCount(int count) {
-        if (type != Type.VALUE && type != Type.VAR) {
-            count++;
-            if (leftExpression != null) {
-                if (rightExpression != null) {
-                    count = leftExpression.getExpressionCount(count);
-                    return rightExpression.getExpressionCount(count);
-                }
-                return leftExpression.getExpressionCount(count);
-            } else if (rightExpression != null) {
-                return rightExpression.getExpressionCount(count);
-            }
+        if (type == Type.REFERENCE)
+            return count + 1;
+
+        for (var child : childExpressions)
+                count += child.getExpressionCount(0);
+        return count + 1;
+    }
+
+    public int getMaxDepth(int count) {
+
+        if (type == Type.REFERENCE) {
+            return count + 1;
         }
-        return count;
+        int maxDepth = 0;
+        for (var child : childExpressions)
+                maxDepth = Math.max(child.getMaxDepth(0), maxDepth);
+        return count + 1 + maxDepth;
     }
 
     public Expression getOptimized() throws CloneNotSupportedException{
         try {
             Expression expression = (Expression) super.clone();
-            if (expression.getVars().size() == 0) {
-                return new Val(expression.getVal());
+            if (getVars().size() == 0) {
+                return new Val(expression.getVal(new ArrayList<>()));
             }
-            if (leftExpression != null)
-                expression.setLeftExpression(leftExpression.getOptimized());
-            if (rightExpression != null)
-                expression.setRightExpression(rightExpression.getOptimized());
+            expression.childExpressions = new ArrayList<>();
+            for (var child : childExpressions)
+                if (child.type != Type.REFERENCE)
+                    expression.childExpressions.add(child.getOptimized());
+                else
+                    expression.childExpressions.add(child);
+            if (numberOfArgs > 1 && expression.getChildren().size() == 1)
+                return expression.getChild(0);
+            return expression;
+        } catch (CloneNotSupportedException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public Expression getOpen() throws CloneNotSupportedException{
+        try {
+            Expression expression = (Expression) super.clone();
+            if (expression.getVars().isEmpty()) {
+                return new Val(expression.getVal(new ArrayList<>()));
+            }
+            expression.childExpressions = new ArrayList<>();
+            for (var child : childExpressions)
+                if (child.type != Type.REFERENCE)
+                    expression.childExpressions.add(child.getOpen());
+                else
+                    expression.childExpressions.add(child);
             return expression;
         } catch (CloneNotSupportedException e) {
             return null;
         }
     }
 
-    public double getVal() {return  0;};
+    public double getVal(ArrayList<Expression> args) {return  0;};
+    public double getVal(Expression arg) { return getVal(new ArrayList<>() {{add(arg);}}); };
+    public double getVal() { return getVal(new ArrayList<>() {{add(new Var(""));}}); };
     public Expression getDerivative(String var) { return null; };
     public Expression getIntegral() { return null;};
 
     public Expression clone() throws CloneNotSupportedException
     {
         Expression expression = (Expression) super.clone();
-        if (leftExpression != null)
-            expression.setLeftExpression(leftExpression.clone());
-        if (rightExpression != null)
-            expression.setRightExpression(rightExpression.clone());
+        expression.childExpressions = new ArrayList<>();
+        if (type == Type.REFERENCE) {
+            expression.addChild(getChild(0));
+            return expression;
+        }
+        for (var i = 0; i < childExpressions.size(); i++) {
+            var childClone = childExpressions.get(i).clone();
+            if (childClone.contains(Type.REFERENCE)) {
+                var references = childClone.getChildren(this, new HashSet<>());
+                for (var reference : references)
+                    reference.setChild(expression, 0);
+            }
+            expression.addChild(childClone);
+        }
         return expression;
     }
 
-    public void setLeftExpression(Expression expression) {
-        leftExpression = expression;
-        if (leftExpression != null) {
-            leftExpression.parent = this;
+
+    public Expression setChild(Expression expression, int i) {
+
+        if (expression != null) {
+            expression.parent = this;
         }
+
+        if (childExpressions.size() == i) {
+            childExpressions.add(expression);
+            return this;
+        }
+
+        if (childExpressions.size() < i) {
+                return null;
+        }
+
+        childExpressions.set(i, expression);
+        return this;
     }
-    public void setRightExpression(Expression expression) {
-        rightExpression = expression;
-        if (rightExpression != null) {
-            rightExpression.parent = this;
+
+    public Expression addChild(Expression expression) {
+        if (expression != null) {
+            expression.parent = this;
         }
+        childExpressions.add(expression);
+        return this;
+    }
+
+
+    public Expression addChildren(Collection<Expression> expressions) {
+        for (var expression : expressions)
+            addChild(expression);
+        return this;
+    }
+
+    public Expression removeChild(Expression expression) {
+        childExpressions.remove(expression);
+        return this;
+    }
+
+    public Expression removeChildren(ArrayList<Expression> expression) {
+        childExpressions.removeAll(expression);
+        return this;
+    }
+    public Expression removeChildren() {
+        childExpressions.clear();
+        return this;
+    }
+
+    public Expression removeChild(int i) {
+        childExpressions.remove(i);
+        return this;
+    }
+
+
+    public Expression getChild(int i) {
+        return childExpressions.size() > i ? childExpressions.get(i) : null;
+    }
+
+    public ArrayList<Expression> getChildren() {
+        return childExpressions;
+    }
+
+    public ArrayList<Expression> getChildren(Expression expression, HashSet<Expression> set) {
+        var iter = childExpressions.iterator();
+        if (type == Type.REFERENCE)
+            if (iter.hasNext()) {
+                var child = iter.next();
+                if (child == expression)
+                    set.add(this);
+                return new ArrayList<>(set);
+            }
+        while (iter.hasNext()) {
+            var child = iter.next();
+            if (child == expression)
+                if (set.contains(this))
+                    break;
+                else
+                    set.add(this);
+            else
+            if (child.contains(expression)) {
+                child.getChildren(expression, set);
+            }
+        }
+        return new ArrayList<>(set);
+    }
+
+    public ArrayList<Expression> getChildren(String name, HashSet<Expression> set) {
+        if (this.name.equals(name))
+            if (set.contains(this))
+                return new ArrayList<Expression>(set);
+            else
+                set.add(this);
+
+        for (var child : childExpressions)
+            if (child.contains(name)) {
+                child.getChildren(name, set);
+            }
+        return new ArrayList<>(set);
+    }
+
+    public ArrayList<Expression> getChildren(Type type, HashSet<Expression> set) {
+        if (this.type == type)
+            if (set.contains(this))
+                return new ArrayList<Expression>(set);
+            else
+                set.add(this);
+
+        for (var child : childExpressions)
+            if (child.contains(type)) {
+                child.getChildren(type, set);
+            }
+        return new ArrayList<>(set);
     }
 
     @Override
     public boolean equals(Object obj) {
-        return super.equals(obj) || (
+        boolean eq = super.equals(obj) || (
                         obj != null
                         && (getClass().isInstance(obj)
                         && ((Expression)obj).type == this.type
                         && ((Expression)obj).priority == this.priority)
-                        && ((Expression)obj).toString().equals(this.toString())
-                        && (leftExpression == ((Expression) obj).leftExpression || leftExpression.equals(((Expression)obj).leftExpression))
-                        && (rightExpression == ((Expression) obj).rightExpression || rightExpression.equals(((Expression)obj).rightExpression))
-        );
+                        && ((Expression)obj).toString().equals(this.toString()));
+        // check children eq
+        return eq;
     }
+
 
     public boolean fillExpressions() {
         return false;
     }
 
+    public void getInstance() {
+
+    }
+
+    public Expression getClone(){
+        try {
+            return clone();
+        } catch (CloneNotSupportedException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 
 
 }

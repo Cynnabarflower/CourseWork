@@ -6,14 +6,14 @@ import java.util.ArrayList;
 
 public class Abs extends Expression {
     @Override
-    public double getVal() {
-        return Math.abs(rightExpression.getVal());
+    public double getVal(ArrayList<Expression> args) {
+        return Math.abs(childExpressions.get(0).getVal(args));
     }
 
     @Override
     public Expression getDerivative(String var) {
             if (this.contains(var)) {
-                return new Div(new Mul(rightExpression, rightExpression.getDerivative(var)), new Abs(rightExpression));
+                return new Div(new Mul(childExpressions.get(0), childExpressions.get(0).getDerivative(var)), new Abs(childExpressions.get(0)));
             }
         return new Val(0);
     }
@@ -23,12 +23,16 @@ public class Abs extends Expression {
         return null;
     }
 
-    public Abs(Expression right) {
-        super(0, "Abs", Type.FUNCTION, ArgumentPosition.RIGHT,0,1, null, right);
+    public Abs(Expression expression) {
+        super(0, "Abs", Type.FUNCTION, ArgumentPosition.RIGHT,0,1, null , expression);
+    }
+    public Abs() {
+        super(0, "Abs", Type.FUNCTION, ArgumentPosition.RIGHT,0,1, null);
     }
 
     @Override
     public String toString() {
-        return "|" + rightExpression + "|";
+
+        return childExpressions.isEmpty() ? "abs()" : "|" + childExpressions.get(0) + "|";
     }
 }

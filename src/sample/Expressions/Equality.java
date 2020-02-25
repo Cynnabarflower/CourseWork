@@ -4,12 +4,11 @@ import java.util.ArrayList;
 
 public class Equality extends Expression {
     public Equality(Expression left, Expression right) {
-        super(0, "Equals", Type.EQUALITY, ArgumentPosition.LEFT_AND_RIGHT, 999, 2, left, right);
+        super(0, "Equals", Type.EQUALITY, ArgumentPosition.LEFT_AND_RIGHT, 999, 2, null, left, right);
     }
 
-    @Override
-    public double getVal() {
-        return 0;
+    public Equality() {
+        super(0, "Equals", Type.EQUALITY, ArgumentPosition.LEFT_AND_RIGHT, 999, 2, null);
     }
 
     @Override

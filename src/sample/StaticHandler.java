@@ -4,16 +4,16 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import sample.Expressions.Expression;
 
 
 import java.io.*;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 import java.util.jar.JarInputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
@@ -33,7 +33,7 @@ public class StaticHandler implements HttpHandler
         if (files == null)
             throw new IllegalStateException("Couldn't find webroot: "+pathToRoot);
         for (File f: files)
-            processFile("", f, gzip);
+            processFile("site/", f, gzip);
     }
 
     private static class Asset {
@@ -47,89 +47,109 @@ public class StaticHandler implements HttpHandler
 
     @Override
     public void handle(HttpExchange httpExchange) throws IOException {
-        Map<String, Object> parameters = new HashMap<String, Object>();
-        URI requestedUri = httpExchange.getRequestURI();
-        String query = requestedUri.getRawQuery();
-        StringBuilder sb = new StringBuilder();
-        InputStream ios = httpExchange.getRequestBody();
-        int i;
-        while ((i = ios.read()) != -1) {
-            sb.append((char) i);
-        }
-        sb.toString();
-        System.out.println("hm: " + sb.toString());
-        if (httpExchange.getRequestMethod().equals("POST")) {
-            JSONObject jsonObject = (JSONObject) JSON.parse(sb.toString());
-            //Main.readIt(Integer.parseInt((String) jsonObject.get("id")), (String) jsonObject.get("element"), (String) jsonObject.get("varValues"));
-            byte[] bytes = {};
-            if (jsonObject.containsKey("id") && jsonObject.containsKey("element") && jsonObject.containsKey("varValues")) {
-                jsonObject = Main.readIt((String) jsonObject.get("id"), (String) jsonObject.get("element"), (String) jsonObject.get("varValues"));
-                bytes = jsonObject.toJSONString().getBytes();
-            } else if (jsonObject.containsKey("defaultExpressions") && jsonObject.containsKey("settings_id")) {
-                String settingsId = jsonObject.get("settings_id").toString();
-                String defaultExpressions = jsonObject.get("defaultExpressions").toString();
-                Main.setUserSettings(settingsId, defaultExpressions);
-                bytes = "Ok".getBytes();
-            } else if (jsonObject.containsKey("settings_id")) {
-                String settingsId = jsonObject.get("settings_id").toString();
-                bytes = Main.getUserSettings(settingsId).getDefaultExpressions().getBytes();
+        try {
+            Map<String, Object> parameters = new HashMap<String, Object>();
+            URI requestedUri = httpExchange.getRequestURI();
+            String query = requestedUri.getRawQuery();
+            StringBuilder sb = new StringBuilder();
+            InputStream ios = httpExchange.getRequestBody();
+            int i;
+            while ((i = ios.read()) != -1) {
+                sb.append((char) i);
             }
-            httpExchange.getResponseHeaders().set("Content-Type", "text/javascript");
-            httpExchange.sendResponseHeaders(200, bytes.length);
-            httpExchange.getResponseBody().write(bytes);
-            httpExchange.getResponseBody().close();
-            return;
-        } else if (httpExchange.getRequestMethod().equals("GET")) {
-            if (requestedUri.toString().equals("/defaultExpressions.txt")) {
-                byte[] bytes = getClass().getResource("/defaultExpressions.txt").openStream().readAllBytes();
-                httpExchange.getResponseHeaders().set("Content-Type", "text/javascript");
+            System.out.println("hm: " + URLDecoder.decode(sb.toString(), StandardCharsets.UTF_8));
+            if (httpExchange.getRequestMethod().equals("POST")) {
+                JSONObject jsonObject = (JSONObject) JSON.parse(URLDecoder.decode(sb.toString(), StandardCharsets.UTF_8));
+                //Main.readIt(Integer.parseInt((String) jsonObject.get("id")), (String) jsonObject.get("element"), (String) jsonObject.get("varValues"));
+                byte[] bytes = {};
+                if (jsonObject.containsKey("id") && jsonObject.containsKey("element") && jsonObject.containsKey("varValues")) {
+                    jsonObject = Main.readIt((String) jsonObject.get("id").toString(), (String) jsonObject.get("element").toString(), (String) jsonObject.get("varValues").toString());
+                    bytes = jsonObject.toJSONString().getBytes();
+                } else if (jsonObject.containsKey("defaultExpressions") && jsonObject.containsKey("settings_id")) {
+                    String settingsId = jsonObject.get("settings_id").toString();
+                    String defaultExpressions = jsonObject.get("defaultExpressions").toString();
+                    double fromX = 0;
+                    try {
+                        fromX = Double.parseDouble(jsonObject.get("fromX").toString());
+                    } catch (NumberFormatException e) {
+                    }
+                    double toX = 0;
+                    try {
+                        toX = Double.parseDouble(jsonObject.get("toX").toString());
+                    } catch (NumberFormatException e) {
+                    }
+                    Main.setUserSettings(settingsId, defaultExpressions, fromX, toX);
+                    bytes = "Ok".getBytes();
+                } else if (jsonObject.containsKey("settings_id")) {
+                    String settingsId = jsonObject.get("settings_id").toString();
+                    UserSettings userSettings = Main.getUserSettings(settingsId);
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("defaultExpressions", userSettings.getDefaultExpressionsString());
+                    map.put("fromX", userSettings.fromX);
+                    map.put("toX", userSettings.toX);
+                    bytes = new JSONObject(map).toJSONString().getBytes();
+                }
+                httpExchange.getResponseHeaders().set("Content-Type", "text/javascript; charset=UTF-8");
                 httpExchange.sendResponseHeaders(200, bytes.length);
                 httpExchange.getResponseBody().write(bytes);
                 httpExchange.getResponseBody().close();
+                System.out.println("Sent");
                 return;
+            } else if (httpExchange.getRequestMethod().equals("GET")) {
+                if (requestedUri.toString().equals("/defaultExpressions.txt")) {
+                    byte[] bytes = getClass().getResource("/defaultExpressions.txt").openStream().readAllBytes();
+                    httpExchange.getResponseHeaders().set("Content-Type", "text/javascript");
+                    httpExchange.getRequestHeaders().set("Access-Control-Allow-Origin", "no-cors");
+                    httpExchange.sendResponseHeaders(200, bytes.length);
+                    httpExchange.getResponseBody().write(bytes);
+                    httpExchange.getResponseBody().close();
+                    return;
+                }
             }
-        }
-        String path = httpExchange.getRequestURI().getPath();
-        try {
-            path = path.substring(1);
-            path = path.replaceAll("//", "/");
-            if (path.length() == 0)
-                path = "site/index.html";
-            else path = "site/"+path;
+            String path = httpExchange.getRequestURI().getPath();
+            try {
+                path = path.substring(1);
+                path = path.replaceAll("//", "/");
+                if (path.length() == 0)
+                    path = "site/index.html";
+                else path = "site/" + path;
 
-            boolean fromFile = new File(pathToRoot + path).exists();
-            InputStream in = fromFile ? new FileInputStream(pathToRoot + path)
-                    : ClassLoader.getSystemClassLoader().getResourceAsStream(pathToRoot + path);
-            Asset res = caching ? data.get(path) : new Asset(readResource(in, gzip));
-
-            if (gzip)
-                httpExchange.getResponseHeaders().set("Content-Encoding", "gzip");
-            if (path.endsWith(".js"))
-                httpExchange.getResponseHeaders().set("Content-Type", "text/javascript");
-            else if (path.endsWith(".html"))
-                httpExchange.getResponseHeaders().set("Content-Type", "text/html");
-            else if (path.endsWith(".css"))
-                httpExchange.getResponseHeaders().set("Content-Type", "text/css");
-            else if (path.endsWith(".json"))
-                httpExchange.getResponseHeaders().set("Content-Type", "application/json");
-            else if (path.endsWith(".svg"))
-                httpExchange.getResponseHeaders().set("Content-Type", "image/svg+xml");
-            if (httpExchange.getRequestMethod().equals("HEAD")) {
-                httpExchange.getResponseHeaders().set("Content-Length", "" + res.data.length);
-                httpExchange.sendResponseHeaders(200, -1);
-                return;
+                boolean fromFile = new File(pathToRoot + path).exists();
+                InputStream in = fromFile ? new FileInputStream(pathToRoot + path)
+                        : ClassLoader.getSystemClassLoader().getResourceAsStream(pathToRoot + path);
+                Asset res = caching ? data.get(path) : new Asset(readResource(in, gzip));
+                if (gzip)
+                    httpExchange.getResponseHeaders().set("Content-Encoding", "gzip");
+                if (path.endsWith(".js"))
+                    httpExchange.getResponseHeaders().set("Content-Type", "text/javascript");
+                else if (path.endsWith(".html")) {
+                    httpExchange.getResponseHeaders().set("Content-Type", "text/html");
+                }
+                else if (path.endsWith(".css"))
+                    httpExchange.getResponseHeaders().set("Content-Type", "text/css");
+                else if (path.endsWith(".json"))
+                    httpExchange.getResponseHeaders().set("Content-Type", "application/json");
+                else if (path.endsWith(".svg"))
+                    httpExchange.getResponseHeaders().set("Content-Type", "image/svg+xml");
+                if (httpExchange.getRequestMethod().equals("HEAD")) {
+                    httpExchange.getResponseHeaders().set("Content-Length", "" + res.data.length);
+                    httpExchange.sendResponseHeaders(200, -1);
+                    return;
+                }
+                httpExchange.getResponseHeaders().set("Access-Control-Allow-Origin", "no-cors");
+                httpExchange.sendResponseHeaders(200, res.data.length);
+                httpExchange.getResponseBody().write(res.data);
+                httpExchange.getResponseBody().close();
+            } catch (NullPointerException t) {
+                System.err.println("Error retrieving: " + path);
+                httpExchange.getResponseBody().close();
+            } catch (Throwable t) {
+                System.err.println("Error retrieving: " + path);
+                t.printStackTrace();
+                httpExchange.getResponseBody().close();
             }
-
-            httpExchange.sendResponseHeaders(200, res.data.length);
-            httpExchange.getResponseBody().write(res.data);
-            httpExchange.getResponseBody().close();
-        } catch (NullPointerException t) {
-            System.err.println("Error retrieving: " + path);
-            httpExchange.getResponseBody().close();
-        } catch (Throwable t) {
-            System.err.println("Error retrieving: " + path);
-            t.printStackTrace();
-            httpExchange.getResponseBody().close();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

@@ -4,24 +4,24 @@ import java.util.ArrayList;
 
 public class Derivative extends Expression {
 
-    private String var = null;
+    private String derVar = null;
 
     @Override
-    public double getVal() {
-        if (var.isEmpty()) {
+    public double getVal(ArrayList<Expression> args) {
+        if (derVar.isEmpty()) {
             ArrayList<String> vars = getVars();
             if (vars.size() > 1) {
                 return 0;
             } else if (vars.size() == 1) {
-                return getDerivative(vars.get(0)).getVal();
+                return childExpressions.get(0).getDerivative(vars.get(0)).getVal(args);
             } else return 0;
         } else
-            return getDerivative(var).getVal();
+            return childExpressions.get(0).getDerivative(derVar).getVal(args);
     }
 
     @Override
     public Expression getDerivative(String var) {
-        return rightExpression.getDerivative(var);
+        return getClone().setChild(childExpressions.get(0).getDerivative(var), 0);
     }
 
     @Override
@@ -29,43 +29,48 @@ public class Derivative extends Expression {
         return null;
     }
 
-    public Derivative(Expression right) {
-        super(0, "Derivative", Type.FUNCTION, ArgumentPosition.LEFT, 0,1, null, right);
-        var = "";
+    public Derivative(Expression expression) {
+        super(0, "Derivative", Type.FUNCTION, ArgumentPosition.LEFT, 0,1, null, expression);
+        derVar = "";
+    }
+
+    public Derivative() {
+        super(0, "Derivative", Type.FUNCTION, ArgumentPosition.LEFT, 0,1, null);
+        derVar = "";
     }
 
 
-    public Derivative(Expression right, String var) {
-        super(0, "Derivative", Type.FUNCTION, ArgumentPosition.LEFT, 0,1, null, right);
-        this.var = var;
+    public Derivative(Expression expressions, String var) {
+        super(0, "Derivative", Type.FUNCTION, ArgumentPosition.LEFT, 0,1, null, expressions);
+        this.derVar = var;
     }
 
     @Override
     public Expression getOptimized() throws CloneNotSupportedException {
-        if (var.isEmpty()) {
-            if (rightExpression != null) {
-                ArrayList<String> vars = rightExpression.getVars();
+        if (derVar.isEmpty()) {
+            if (childExpressions.get(0) != null) {
+                ArrayList<String> vars = childExpressions.get(0).getVars();
                 if (vars.size() == 1) {
-                    return super.getOptimized().getDerivative(vars.get(0)).getOptimized();
+                    return ExpressionFactory.optimize(childExpressions.get(0)).getDerivative(vars.get(0));
                 } else if (vars.size() == 0) {
                     return new Val(0);
                 } else
-                    return null;
+                    return clone();
             } else
-                return null;
+                return clone();
         }
-        return super.getOptimized().getDerivative(var).getOptimized();
+        return ExpressionFactory.optimize(childExpressions.get(0)).getDerivative(derVar).getOptimized();
     }
 
-    public void setVar(String var) {
-        this.var = var;
+    public void setDerVar(String derVar) {
+        this.derVar = derVar;
     }
 
     @Override
     public String toString() {
-        if (rightExpression != null && rightExpression.type == Type.FUNCTION) {
-            return "("+rightExpression+")\'";
+        if (childExpressions.get(0) != null && childExpressions.get(0).type == Type.FUNCTION) {
+            return "("+childExpressions.get(0)+")\'";
         }
-        return rightExpression.toString()+"\'";
+        return childExpressions.get(0).toString()+"\'";
     }
 }
