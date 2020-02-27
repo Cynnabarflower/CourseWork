@@ -1,25 +1,21 @@
+body{
+margin:1200px;
+hight:1vh;
+}
+
 /* Базовый контейнер табов */
 .tabs {
-
 	padding: 5px;
 }
 /* Стили секций с содержанием */
 .tabs>section {
 	display: none;
-	padding: 15px 0px;
+	margin: 40px 0px;
 	background: #fff;
+	margin-left: 15px;
 }
-.tabs>section>p {
-/*	margin: 0 0 5px;
-	line-height: 1.5;
-	color: #383838;
-	*//* прикрутим анимацию *//*
-	-webkit-animation-duration: 1s;
-	animation-duration: 1s;
-	-webkit-animation-fill-mode: both;
-	animation-fill-mode: both;
-	-webkit-animation-name: fadeIn;
-	animation-name: fadeIn;*/
+.tabs {
+
 }
 /* Описываем анимацию свойства opacity */
 
@@ -87,27 +83,6 @@
 #tab1:checked~#content-tab1, #tab2:checked~#content-tab2, #tab3:checked~#content-tab3, #tab4:checked~#content-tab4 {
 	display: block;
 }
-/* Убираем текст с переключателей
-* и оставляем иконки на малых экранах
-*/
-/*
-@media screen and (max-width: 680px) {
-	.tabs>label {
-		font-size: 0;
-	}
-	.tabs>label:before {
-		margin: 0;
-		font-size: 18px;
-	}
-}
-*//* Изменяем внутренние отступы
-*  переключателей для малых экранов
-*//*
-@media screen and (max-width: 400px) {
-	.tabs>label {
-		padding: 15px;
-	}
-}*/
 
 body{
     margin: 0;
@@ -183,4 +158,35 @@ display: table-cell;
 .checkBox {
         display: table-cell;
         vertical-align: middle;
+}
+
+#spinner{
+  visibility: hidden;
+  width: 80px;
+  height: 80px;
+
+  border: 2px solid #f3f3f3;
+  border-top:3px solid #f25a41;
+  border-radius: 100%;
+
+  position: absolute;
+  top:0;
+  bottom:0;
+  left:0;
+  right: 0;
+  margin: auto;
+
+  animation: spin 1s infinite linear;
+}
+
+@keyframes spin {
+  from {
+      transform: rotate(0deg);
+  } to {
+      transform: rotate(360deg);
+  }
+}
+
+#spinner.show {
+  visibility: visible;
 }

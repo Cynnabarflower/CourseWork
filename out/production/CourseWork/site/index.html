@@ -13,14 +13,15 @@
 
     <div class="tabs">
         <input id="tab1" type="radio" name="tabs" checked>
-        <label for="tab1" title="Вкладка 1">Вкладка 1</label>
+        <label for="tab1" title="Expressions">Expressions</label>
 
         <input id="tab2" type="radio" name="tabs">
-        <label for="tab2" title="Вкладка 2">Вкладка 2</label>
+        <label for="tab2" title="Settings & Docs">Settings & Docs</label>
         <section id="content-tab1">
-                        <table width="100%" cellspacing="5" cellpadding="5" style=" valign = 'top' position: relative; display: inline-block;">
+                        <table width="100vh" cellspacing="5" cellpadding="5" style=" valign = 'top'; display: inline-block;">
                             <tr>
-                                <td style='width="50%" valign="top" min-width="50%"'>
+                                <td style='width="500px" valign="top" min-width="300px"; margin = 20px'>
+                                    <div id="spinner"></div>
                                     <expressions id="expressions"></expressions>
 
                                     <div style="height:3em; position: absolute; margin: 5px" ><input type="image" id="updateAllExpressions" value="update" onclick="updateAllExpressions()" src="refresh.png" style="height:100%">
@@ -28,7 +29,7 @@
                                     </div>
 
                                 </td>
-                                <td id='vars_place' style='width="20%" valign="top"'>
+                                <td id='vars_place' style='width="200px" valign="top"'>
                                 </td>
                                 <td style='width="500px" valign="top"'>
 
@@ -45,7 +46,7 @@
         </section>
         <section id="content-tab2">
                         <h2>Default expressions:</h2>
-                        <textarea id='defaultExpressions' style="width: 100%; height: 100px" name="FindString" value=""
+                        <textarea id='defaultExpressions' style="width: 100vh; height: 100px" name="FindString" value=""
                                   size=100%></textarea>
                         <div>x [<input type="number" size="8" id="fromX" style='font-size: 16px'>;<input type="number"
                                                                                                          size="8"
