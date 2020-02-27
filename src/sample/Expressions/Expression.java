@@ -299,9 +299,9 @@ public class Expression implements Cloneable {
 
     public Expression getOpen() throws CloneNotSupportedException{
         try {
-            Expression expression = (Expression) super.clone();
+            Expression expression = getClone();
             if (expression.getVars().isEmpty()) {
-                return new Val(expression.getVal(new ArrayList<>()));
+                return new Val(expression.getVal());
             }
             expression.childExpressions = new ArrayList<>();
             for (var child : childExpressions)

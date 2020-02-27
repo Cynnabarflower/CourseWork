@@ -18,7 +18,9 @@ var labelText;
 var lastPointer = null;
 var pointerdown = false;
 var secondClick = false;
+var firstClick = false;
 var cameraMoved = false;
+const spinner = document.getElementById("spinner");
 
 
 function addColorPicker(expressionNumber) {
@@ -162,18 +164,24 @@ function create() {
 
                pointerdown = false;
 
-
-               if (!secondClick) {
-                   secondClick = true;
-                   setTimeout(function() { secondClick = false }, 300);
+               if (secondClick) {
+               firstClick = false;
+                                                                                   secondClick = false;
+                                                                                   cameraMoved = false;
+                                                                                   manualZoom = -1;
+                                                                                   document.getElementById("zoomRange").value = -1;
+               } else if (firstClick) {
+                 setTimeout(function() { secondClick = false; }, 300);
+                secondClick = true;
                } else {
-                   secondClick = false;
-                   cameraMoved = false;
-                   manualZoom = -1;
-                   document.getElementById("zoomRange").value = -1;
+                firstClick = true;
+                 setTimeout(function() { firstClick = false; if (secondClick) {
+                 context.cameras.main.centerOn(0,0);
+                 cameraMoved = false; }}, 300);
                }
 
-           });
+
+           }, this);
 
                this.input.on('wheel', function (pointer, gameObjects, deltaX, deltaY, deltaZ) {
 
@@ -425,7 +433,7 @@ function updateAllExpressions() {
 function readIt(id, graphId, element, varValues, responseVars) {
     var url = window.location.href;
     var options = {id : id, element : element, varValues : varValues}
-
+    showSpinner();
     fetch(url, {
                  method: 'POST',
                  headers: {
@@ -437,7 +445,8 @@ function readIt(id, graphId, element, varValues, responseVars) {
       .then(response =>
         {
             console.log(response)
-            document.getElementById("answer"+graphId).innerHTML = response.message;
+            hideSpinner();
+            document.getElementById("answer"+graphId).innerText  = response.message;
             drawGraph(response.points, graphId);
             for (var i = 0; i < response.vars.length; i++)
                 addVar(response.vars[i], id, null);
@@ -490,7 +499,7 @@ function addExpression() {
     div.innerHTML = "<expression id = \"expression" + expressionNumber + "\" style='height:2em; white-space: nowrap;'><input type=\"text\" size=\"30\" id = \"" + textName + "\"> <input type=\"submit\" id = \"" + buttonName + "\" value=\"Ок\" onclick=\"clicked(" + textName + ")\" style=\"display: none;\">" +
         "<class=\"picker-wrapper\" id = \"picker-wrapper" + expressionNumber + "\"><button class=\"color-button\" id = \"color-button" + expressionNumber + "\" style = 'display: inline-block'></button>" +
         "<input type='image' id = \"remove-button" + expressionNumber + "\" onclick=\"remove(\'" + (expressionNumber) + "\')\" src= 'trash.png' style='height:2em; vertical-align: middle; display: inline-block'>"+
-        "<p id = 'answer"+expressionNumber+"' style = 'margin:0px'></p></expression>"+
+        "<p><span id = 'answer"+expressionNumber+"' style = 'white-space: normal'></span></p></expression>"+
         "<div class=\"color-picker\" id = \"color-picker" + expressionNumber + "\"></div>";
     expressions.append(div);
 
@@ -657,3 +666,14 @@ function setCookie(name, value, options = {}) {
   }
   document.cookie = updatedCookie;
 }
+
+function showSpinner() {
+  spinner.className = "show";
+  setTimeout(() => {
+    spinner.className = spinner.className.replace("show", "");
+  }, 5000);
+}
+
+ function hideSpinner() {
+   spinner.className = spinner.className.replace("show", "");
+ }

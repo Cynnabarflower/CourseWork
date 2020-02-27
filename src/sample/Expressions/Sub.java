@@ -110,10 +110,24 @@ public class Sub extends Expression {
     @Override
     public Expression getOpen() throws CloneNotSupportedException {
         Expression expression = super.getOpen();
-/*        expression.childExpressions = new ArrayList<>();
-        for (var child : childExpressions) {
+        expression.childExpressions = new ArrayList<>();
+        if (getVars().isEmpty()) {
+            return new Val(getVal());
+        }
+        if (childExpressions.size() == 2) {
+            if (childExpressions.get(1).type == Type.VALUE) {
+                return new Sum(childExpressions.get(0), new Val(-childExpressions.get(1).getVal()));
+            }
+
+        }
+        var sum = new Sum(childExpressions.get(0));
+        for (var i = 1; i < childExpressions.size(); i++) {
+            sum.addChild(new Mul(new Val(-1), childExpressions.get(i).getOpen()).getOpen());
+        }
+        return sum.getOpen();
+/*        for (var child : childExpressions) {
             expression.addChild(child.getOpen());
         }*/
-        return expression;
+        //return expression;
     }
 }

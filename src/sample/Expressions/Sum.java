@@ -90,10 +90,13 @@ public class Sum extends Expression {
 
     @Override
     public Expression getOpen() throws CloneNotSupportedException {
+        if (getVars().isEmpty()) {
+            return new Val(getVal());
+        }
         Expression expression = super.getOpen();
         expression.childExpressions = new ArrayList<>();
         for (var child : childExpressions) {
-            if (child.type == type && child.priority == priority && child.name.equals(name)) {
+            if (child.priority == priority && child instanceof Sum) {
                 expression.addChildren(child.clone().getChildren());
             } else
                 expression.addChild(child.getOpen());

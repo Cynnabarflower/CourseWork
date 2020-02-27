@@ -92,7 +92,24 @@ public class Div extends Expression {
         return sb.toString();
     }
 
-
-
-
+    @Override
+    public Expression getOpen() throws CloneNotSupportedException {
+        var expression = super.getOpen();
+        var child = expression.getChild(0);
+/*        if (child instanceof Mul) {
+            var open = new Mul();
+            for (var childOfChild : child.getChildren()) {
+                open.addChild(new Div(childOfChild).addChildren(expression.clone().removeChild(0).getChildren()));
+            }
+            return open;
+        }
+        if (child instanceof Sum) {
+            var open = new Sum();
+            for (var childOfChild : child.getChildren()) {
+                open.addChild(new Div(childOfChild).addChildren(expression.clone().removeChild(0).getChildren()));
+            }
+            return open;
+        }*/
+        return expression;
+    }
 }

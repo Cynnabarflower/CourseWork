@@ -139,12 +139,26 @@ public class Mul extends Expression {
     public Expression getOpen() throws CloneNotSupportedException {
         Expression expression = this.clone();
         expression.childExpressions = new ArrayList<>();
+        if (getVars().isEmpty()) {
+            return new Val(getVal());
+        }
         for (var child : childExpressions) {
-            if (child.type == type && child.priority == priority && child.name.equals(name)) {
+            if (child.priority == priority && child instanceof Mul) {
                 expression.childExpressions.addAll(child.clone().getChildren());
             } else
                 expression.addChild(child.getOpen());
         }
+/*        for (var child : expression.childExpressions) {
+            if (child instanceof Sum) {
+                Expression sum = new Sum();
+                expression.removeChild(child);
+                for (var sumChild : child.getChildren())
+                    sum.addChild(new Mul(sumChild, expression.clone())).getOpen();
+                return sum.getOpen();
+            }
+
+        }*/
+
         return expression;
     }
 

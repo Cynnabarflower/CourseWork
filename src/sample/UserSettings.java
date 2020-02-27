@@ -11,6 +11,7 @@ public class UserSettings {
     double fromX;
     double toX;
     int precision;
+    int optimizationLevel = 0;
 
     public UserSettings(String defaultExpressions) {
 

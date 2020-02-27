@@ -797,6 +797,8 @@ public class ExpressionFactory {
             if (expression1.getMaxDepth(0) < ops) {
                 return open(expression1);
             } else {
+                System.out.println("OPEN:");
+                System.out.println(expression);
                 return expression;
             }
         } catch (CloneNotSupportedException e) {
