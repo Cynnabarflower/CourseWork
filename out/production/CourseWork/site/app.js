@@ -251,6 +251,7 @@ function update() {
         graphics.lineStyle(3 / this.cameras.main.zoom, graph.lineColor, 1);
 
         graph.path.draw(graphics);
+        pointer = this.cameras.main.getWorldPoint(this.input.x , this.input.y);
         if (!drawingLabel && this.input.isOver && !this.game.input.activePointer.isDown) {
                         if (graph.minX <= pointer.x && graph.maxX >= pointer.x) {
                             if (graph.minY <= -pointer.y && graph.maxY >= -pointer.y) {
@@ -563,7 +564,7 @@ function addVar(name, id, title) {
     if (document.getElementById('var_'+name) == null) {
             let div = document.createElement('div');
             div.className = "varClass";
-            div.innerHTML = "<div id = 'varContainer_"+ name +"'<input class='checkBox' type='checkbox' id=checkBox_"+name+" onchange = varChosen('"+name+"') >"+title+" = <input type=\"text\" size=\"10\" name = " + name + " id = \"var_" + name + "\"></div>";
+            div.innerHTML = "<div id = 'varContainer_"+ name +"'><input class='checkBox' type='checkbox' id=checkBox_"+name+" onchange = varChosen('"+name+"') >"+title+" = <input type=\"text\" size=\"10\" name = " + name + " id = \"var_" + name + "\"></div>";
             vars_place.append(div);
 
             document.getElementById("var_"+name).addEventListener("keyup", function(event) {
