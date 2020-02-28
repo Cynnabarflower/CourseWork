@@ -493,6 +493,15 @@ function updateMinMax() {
 
 }
 
+function readFile(object) {
+  var file = object.files[0]
+  var reader = new FileReader()
+  reader.onload = function() {
+    document.getElementById('defaultExpressions').value = reader.result;
+  }
+  reader.readAsText(file)
+}
+
 
 function addExpression() {
 
