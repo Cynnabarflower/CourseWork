@@ -115,7 +115,7 @@ public class Main  {
     }
 
 
-    public static void setUserSettings(String id, String text, double fromX, double toX) {
+    public static void setUserSettings(String id, String text, double fromX, double toX, int optimizationLevel, boolean extraOptimization) {
         String textExpressions[] = text.split("[;\n\r]+");
   //      ArrayList<Pair<String, Expression>> eqExpressions = new ArrayList<>();
 /*        for (String textExpression : textExpressions) {
@@ -132,6 +132,8 @@ public class Main  {
         UserSettings tempUserSettings = new UserSettings();
         tempUserSettings.setDefaultExpressions(text);
         tempUserSettings.setX(fromX, toX);
+        tempUserSettings.optimizationLevel = optimizationLevel;
+        tempUserSettings.extraOptimization = extraOptimization;
 
         userSettings.put(id, tempUserSettings);
     }
@@ -158,44 +160,18 @@ public class Main  {
         displayOutput(inputExpression, s);
     }
 
-/*    public static void displayGraph(ArrayList<Pair<Double, Double>> points, int id) {
-        JSObject windowObject = (JSObject)webEngine.executeScript("window");
-        windowObject.setMember("graphPoints", points);
-        windowObject.setMember("graphId", id);
-        webEngine.executeScript("drawGraph(graphPoints, graphId)");
-       // windowObject.call("drawGraph", points);
-    }*/
-
-    public static void addVars(ArrayList<String> vars) {
-/*        JSObject windowObject = (JSObject)webEngine.executeScript("window");
-        for (String var : vars) {
-            windowObject.setMember("newVar", var);
-            webEngine.executeScript("addVar(newVar)");
-        }*/
-    }
-
-    public static ArrayList<String> getVars(String s) {
-        ArrayList<String> vars = new ArrayList<>();
-
-        ArrayList<Expression> expressions = ExpressionFactory.getExpressionTree(s, null);
-        for (var expression : expressions)
-            vars.addAll(expression.getVars());
-
-        return  ((ArrayList<String>) vars.stream().distinct().collect(Collectors.toList()));
-    }
-
-
     public static JSONObject readIt(String id, String s, String varNames) {
 
         ArrayList<Expression> vars = new ArrayList<>();
         ArrayList<Pair<String, Expression>> varValues = new ArrayList<>();
         ArrayList<String> varsFromExpressions = new ArrayList<>();
+
         UserSettings currentSettings = getUserSettings(id);
         vars.addAll(currentSettings.expressions);
        // vars.addAll(currentSettings.getExpressionsMap().keySet());
         if (!varNames.isEmpty()) {
 
-                ArrayList<Expression> expressions = ExpressionFactory.getExpressionTree(varNames, vars);
+                ArrayList<Expression> expressions = ExpressionFactory.getExpressionTree(varNames, vars, currentSettings);
                 for (Expression expression : expressions) {
                     if (expression.type == Expression.Type.EQUALITY) {
                         try {
@@ -218,7 +194,10 @@ public class Main  {
                 }
 
         try {
-            ArrayList<Expression> expressions = ExpressionFactory.getExpressionTree(s, vars);
+            ArrayList<Expression> expressions = ExpressionFactory.getExpressionTree(s, vars, currentSettings);
+            for (var i = 0; i < expressions.size(); i++) {
+                expressions.set(i, ExpressionFactory.optimize(ExpressionFactory.open(expressions.get(i)), currentSettings));
+            }
             ArrayList<Expression> optimizedExpressions = new ArrayList<>();
             ArrayList<Expression> defaultExpressions = currentSettings.expressions;
             //vars.addAll(defaultExpressions);
@@ -241,7 +220,7 @@ public class Main  {
                     }*/
                    // expression.setExpressions(varValues);
 
-                    //Expression der = expression.getDerivative("x").getOptimized();
+                    //Expression der = expression.getDerivative("x").getOptimized(level);
                    // der = ExpressionFactory.optimize(der);
                     displayOutput(inputExpression, expression.toString());
                     var args = new ArrayList<Expression>();

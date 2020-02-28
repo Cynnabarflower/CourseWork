@@ -46,20 +46,20 @@ public class Derivative extends Expression {
     }
 
     @Override
-    public Expression getOptimized() throws CloneNotSupportedException {
+    public Expression getOptimized(int level) {
         if (derVar.isEmpty()) {
             if (childExpressions.get(0) != null) {
                 ArrayList<String> vars = childExpressions.get(0).getVars();
                 if (vars.size() == 1) {
-                    return ExpressionFactory.optimize(childExpressions.get(0)).getDerivative(vars.get(0));
+                    return childExpressions.get(0).getOptimized(level).getDerivative(vars.get(0));
                 } else if (vars.size() == 0) {
                     return new Val(0);
                 } else
-                    return clone();
+                    return getClone();
             } else
-                return clone();
+                return getClone();
         }
-        return ExpressionFactory.optimize(childExpressions.get(0)).getDerivative(derVar).getOptimized();
+        return childExpressions.get(0).getOptimized(level).getDerivative(derVar).getOptimized(level);
     }
 
     public void setDerVar(String derVar) {

@@ -2,6 +2,7 @@ package sample.Expressions;
 
 import javafx.util.Pair;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 
 public class Val extends Expression {
@@ -26,6 +27,8 @@ public class Val extends Expression {
 
     @Override
     public String toString() {
-        return ""+val;
+        if (Double.isNaN(val) || Double.isInfinite(val))
+            return "("+val+")";
+        return val > 0 ? new BigDecimal(val).toPlainString() : "(" +new BigDecimal(val).toPlainString()+ ")";
     }
 }

@@ -33,6 +33,8 @@ public class Sub extends Expression {
 
     @Override
     public String toString() {
+        if (childExpressions.isEmpty())
+            return "-";
         if (childExpressions.size() == 1)
             return "-"+childExpressions.get(0);
         StringBuilder sb = new StringBuilder();
@@ -56,7 +58,7 @@ public class Sub extends Expression {
     }
 
     @Override
-    public Expression getOptimized() throws CloneNotSupportedException {
+    public Expression getOptimized(int level) {
 
         if (getVars().isEmpty()) {
             return new Val(getVal());
@@ -70,7 +72,7 @@ public class Sub extends Expression {
             if (child.getVars().isEmpty()) {
                 sub += child.getVal(new ArrayList<>());
             } else
-                expression.addChild(child.getOptimized());
+                expression.addChild(child.getOptimized(level));
         }
         if (sub != 0)
             expression.addChild(new Val(sub));
@@ -82,7 +84,7 @@ public class Sub extends Expression {
             if (child.getVars().isEmpty()) {
                 val += child.getVal();
             } else {
-                expression.addChild(child.getOptimized());
+                expression.addChild(child.getOptimized(level));
             }
         if (expression.childExpressions.isEmpty()) {
             return new Val(val);
@@ -93,18 +95,16 @@ public class Sub extends Expression {
             return expression.childExpressions.get(0);*/
         if (childExpressions.get(1).getVars().isEmpty()) {
             var firstChildVal = childExpressions.get(1).getVal();
-            if (childExpressions.get(0).getVars().isEmpty()) {
-                return new Val(childExpressions.get(0).getVal() - firstChildVal);
-            } else if (firstChildVal < 0) {
-                return new Sum(childExpressions.get(0).getOptimized(), new Val(-firstChildVal)).getOptimized();
+            if (firstChildVal < 0) {
+                return new Sum(childExpressions.get(0).getOptimized(level), new Val(-firstChildVal)).getOptimized(level);
             } else if (firstChildVal == 0) {
-                return childExpressions.get(0).getOptimized();
+                return childExpressions.get(0).getOptimized(level);
             }
-        } else if (childExpressions.get(0).equals(childExpressions.get(1))) {
+        } else if (level > 1 && childExpressions.get(0).equals(childExpressions.get(1))) {
             return new Val(0);
         }
 
-        return getClone().setChild(childExpressions.get(0).getOptimized(), 0).setChild(childExpressions.get(1).getOptimized(), 1);
+        return getClone().setChild(childExpressions.get(0).getOptimized(level), 0).setChild(childExpressions.get(1).getOptimized(level), 1);
     }
 
     @Override

@@ -78,7 +78,14 @@ public class StaticHandler implements HttpHandler
                         toX = Double.parseDouble(jsonObject.get("toX").toString());
                     } catch (NumberFormatException e) {
                     }
-                    Main.setUserSettings(settingsId, defaultExpressions, fromX, toX);
+                    int optimizationLevel = 0;
+                    try {
+                        optimizationLevel = Integer.parseInt(jsonObject.get("optimization_level").toString());
+                    } catch (NumberFormatException e) {
+                    }
+                    boolean extraOptimization = Boolean.parseBoolean(jsonObject.getString("extra_optimization"));
+
+                    Main.setUserSettings(settingsId, defaultExpressions, fromX, toX, optimizationLevel, extraOptimization);
                     bytes = "Ok".getBytes();
                 } else if (jsonObject.containsKey("settings_id")) {
                     String settingsId = jsonObject.get("settings_id").toString();

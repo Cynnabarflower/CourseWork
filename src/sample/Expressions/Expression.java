@@ -32,8 +32,7 @@ public class Expression implements Cloneable {
     public ArgumentPosition argumentPosition;
     public int priority;
     public int numberOfArgs;
-/*    public Expression leftExpression = null;
-    public Expression rightExpression = null;*/
+
     protected ArrayList<Expression> childExpressions = null;
     public Expression parent = null;
 
@@ -276,25 +275,21 @@ public class Expression implements Cloneable {
         return count + 1 + maxDepth;
     }
 
-    public Expression getOptimized() throws CloneNotSupportedException{
-        try {
-            Expression expression = (Expression) super.clone();
+    public Expression getOptimized(int level) {
+
+            Expression expression = getClone();
             if (getVars().size() == 0) {
-                return new Val(expression.getVal(new ArrayList<>()));
+                return new Val(expression.getVal());
             }
             expression.childExpressions = new ArrayList<>();
             for (var child : childExpressions)
                 if (child.type != Type.REFERENCE)
-                    expression.childExpressions.add(child.getOptimized());
+                    expression.childExpressions.add(child.getOptimized(level));
                 else
                     expression.childExpressions.add(child);
-            if (numberOfArgs > 1 && expression.getChildren().size() == 1)
-                return expression.getChild(0);
+
+            expression.childExpressions.sort(this::compare);
             return expression;
-        } catch (CloneNotSupportedException e) {
-            e.printStackTrace();
-            return null;
-        }
     }
 
     public Expression getOpen() throws CloneNotSupportedException{
@@ -314,6 +309,20 @@ public class Expression implements Cloneable {
             return null;
         }
     }
+
+    public int compare(Expression o1, Expression o2) {
+        if (o1.type == Type.VALUE && o2.type != Type.VALUE)
+            return -1;
+
+        int o1Vars = o1.getVars().size();
+        int o2Vars = o2.getVars().size();
+        if (o1Vars != o2Vars)
+            return o1Vars - o2Vars;
+
+        return (o1.getMaxDepth(0) - o2.getMaxDepth(0));
+
+    }
+
 
     public double getVal(ArrayList<Expression> args) {return  0;};
     public double getVal(Expression arg) { return getVal(new ArrayList<>() {{add(arg);}}); };

@@ -54,15 +54,15 @@ public class Pow extends Expression {
     }
 
     @Override
-    public Expression getOptimized() throws CloneNotSupportedException {
-        Expression expression = this.clone();
+    public Expression getOptimized(int level) {
+        Expression expression = getClone();
         if (expression.getVars().isEmpty()) {
             return new Val(getVal(new ArrayList<>()));
         }
 
-        if (childExpressions.get(0) instanceof Pow) {
+        if (level > 0 && childExpressions.get(0) instanceof Pow) {
             expression.removeChild(0);
-            return childExpressions.get(0).clone().addChildren(expression.getChildren()).getOptimized();
+            return childExpressions.get(0).getClone().addChildren(expression.getChildren()).getOptimized(level);
         }
 
         expression.childExpressions = new ArrayList<>();
@@ -70,10 +70,10 @@ public class Pow extends Expression {
         expression.childExpressions.add(childExpressions.get(0));
         var mul = new Mul();
         for (var i = 1; i < childExpressions.size(); i++) {
-            var child = childExpressions.get(i).getOptimized();
+            var child = childExpressions.get(i).getOptimized(level);
             mul.addChild(child);
         }
-        expression.childExpressions.add(mul.getOptimized());
+        expression.childExpressions.add(mul.getOptimized(level));
         return expression;
     }
 }

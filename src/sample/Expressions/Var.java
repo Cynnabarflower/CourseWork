@@ -101,8 +101,8 @@ public class Var extends Expression {
     }
 
     @Override
-    public Expression getOptimized() throws CloneNotSupportedException {
-        Expression expression = clone();
+    public Expression getOptimized(int level) {
+        Expression expression = getClone();
        // expression.childExpressions = new ArrayList<>();
 
         if (type == Type.VAR) {
@@ -117,12 +117,12 @@ public class Var extends Expression {
         if (numberOfArgs == 0 && !childExpressions.isEmpty())
             return childExpressions.get(0).clone();
 
-        expression.addChild(childExpressions.get(0).getOptimized());
+        expression.addChild(childExpressions.get(0).getOptimized(level));
         if (childExpressions.size() == numberOfArgs + 1) {
             for (var i = 1; i <= numberOfArgs; i++) {
                 var varChild = childExpressions.get(i);
                 if (!varChild.getChildren().isEmpty()) {
-                    expression.addChild(varChild.clone().setChild((varChild.getChild(0).getOptimized()), 0));
+                    expression.addChild(varChild.clone().setChild((varChild.getChild(0).getOptimized(level)), 0));
                 } else {
                     expression.addChild(varChild.clone());
                 }

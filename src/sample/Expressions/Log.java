@@ -69,15 +69,15 @@ public class Log extends Expression {
     }
 
     @Override
-    public Expression getOptimized() throws CloneNotSupportedException {
-        Expression expression = super.getOptimized();
+    public Expression getOptimized(int level) {
+        Expression expression = super.getOptimized(level);
         if (expression.type == Type.VALUE)
             return expression;
         if (expression.childExpressions.get(0).type == Type.VALUE) {
-            if (expression.childExpressions.get(0).val == 1) {
+            if (level > 0 && expression.childExpressions.get(0).val == 1) {
                 return new Val(Double.POSITIVE_INFINITY);
             }
-            if (expression.childExpressions.get(0).val == 0) {
+            if (level > 0 && expression.childExpressions.get(0).val == 0) {
                 return new Val(Double.NaN);
             }
             if (expression.childExpressions.get(1).type == Type.VALUE &&

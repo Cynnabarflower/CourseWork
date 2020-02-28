@@ -95,6 +95,7 @@ var config = {
 var game = new Phaser.Game(config);
 
 addExpression();
+addVar("x", getCookie("settings_id"), "");
 
 function reload() {
     if (game) {
@@ -177,7 +178,7 @@ function create() {
                 firstClick = true;
                  setTimeout(function() { firstClick = false; if (secondClick) {
                  context.cameras.main.centerOn(0,0);
-                 cameraMoved = false; }}, 300);
+                 cameraMoved = true; }}, 300);
                }
 
 
@@ -426,6 +427,7 @@ function updateAllExpressions() {
             elem.parentElement.removeChild(elem);
     }
     vars = new Map();
+    addVar("x", id, "");
     for (var varName of allVars)
         addVar(varName, id, "");
 
@@ -448,6 +450,7 @@ function readIt(id, graphId, element, varValues, responseVars) {
             console.log(response)
             hideSpinner();
             document.getElementById("answer"+graphId).innerText  = response.message;
+            document.getElementById("answerSummary"+graphId).innerText  = response.message.length > 30 ? response.message.substring(0, 28) + "..." : response.message;
             drawGraph(response.points, graphId);
             for (var i = 0; i < response.vars.length; i++)
                 addVar(response.vars[i], id, null);
@@ -500,7 +503,7 @@ function addExpression() {
     div.innerHTML = "<expression id = \"expression" + expressionNumber + "\" style='height:2em; white-space: nowrap;'><input type=\"text\" size=\"30\" id = \"" + textName + "\"> <input type=\"submit\" id = \"" + buttonName + "\" value=\"Ок\" onclick=\"clicked(" + textName + ")\" style=\"display: none;\">" +
         "<class=\"picker-wrapper\" id = \"picker-wrapper" + expressionNumber + "\"><button class=\"color-button\" id = \"color-button" + expressionNumber + "\" style = 'display: inline-block'></button>" +
         "<input type='image' id = \"remove-button" + expressionNumber + "\" onclick=\"remove(\'" + (expressionNumber) + "\')\" src= 'trash.png' style='height:2em; vertical-align: middle; display: inline-block'>"+
-        "<p><span id = 'answer"+expressionNumber+"' style = 'white-space: normal'></span></p></expression>"+
+        "<p><details><summary id = 'answerSummary"+expressionNumber+"'></summary><span id = 'answer"+expressionNumber+"' style = 'white-space: normal'></span></details></p></expression>"+
         "<div class=\"color-picker\" id = \"color-picker" + expressionNumber + "\"></div>";
     expressions.append(div);
 
@@ -564,7 +567,7 @@ function addVar(name, id, title) {
     if (document.getElementById('var_'+name) == null) {
             let div = document.createElement('div');
             div.className = "varClass";
-            div.innerHTML = "<div id = 'varContainer_"+ name +"'><input class='checkBox' type='checkbox' id=checkBox_"+name+" onchange = varChosen('"+name+"') >"+title+" = <input type=\"text\" size=\"10\" name = " + name + " id = \"var_" + name + "\"></div>";
+            div.innerHTML = "<div id = 'varContainer_"+ name +"'><input class='checkBox' type='checkbox' id='checkBox_"+name+"' onchange = varChosen('"+name+"')>"+title+" = <input type=\"text\" size=\"10\" name = " + name + " id = \"var_" + name + "\"></div>";
             vars_place.append(div);
 
             document.getElementById("var_"+name).addEventListener("keyup", function(event) {
@@ -592,13 +595,23 @@ function saveSettings() {
    var defaultExpressions = document.getElementById("defaultExpressions").value;
    var fromX = document.getElementById("fromX").value;
    var toX = document.getElementById("toX").value;
+   var optimizationLevel = document.getElementById("optimizationLevel").value;
+   var extraOptimization = document.getElementById("extraOptimization").checked;
 
    var settings_id = getCookie("settings_id");
    if (!!!settings_id) {
         settings_id = Math.random(Date.now()).toString().substr(2, 9);
         setCookie("settings_id", settings_id);
    }
-      var options = {fromX : fromX, toX : toX, defaultExpressions : defaultExpressions, settings_id : settings_id};
+      var options = {
+      fromX : fromX,
+      toX : toX,
+      defaultExpressions : defaultExpressions,
+      settings_id : settings_id,
+      optimization_level : optimizationLevel,
+      extra_optimization : extraOptimization
+      };
+
        fetch(url, {
                     method: 'POST',
                     headers: {
@@ -671,7 +684,10 @@ function setCookie(name, value, options = {}) {
 function showSpinner() {
   spinner.className = "show";
   setTimeout(() => {
-    spinner.className = spinner.className.replace("show", "");
+    if (spinner.className == "show") {
+        showSpinner();
+    } else
+        spinner.className = spinner.className.replace("show", "");
   }, 5000);
 }
 

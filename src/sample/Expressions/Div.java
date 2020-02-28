@@ -26,31 +26,23 @@ public class Div extends Expression {
     }
 
     @Override
-    public Expression getOptimized() throws CloneNotSupportedException {
-        Expression expression = clone();
+    public Expression getOptimized(int level) {
+        Expression expression = getClone();
         expression.childExpressions = new ArrayList<>();
-        expression.addChild(childExpressions.get(0).getOptimized()).addChild(childExpressions.get(1).getOptimized());
+        expression.addChild(childExpressions.get(0).getOptimized(level)).addChild(childExpressions.get(1).getOptimized(level));
 
         if (expression.childExpressions.get(0).type == Type.VALUE) {
             if (expression.childExpressions.get(1).type == Type.VALUE) {
-                return new Val(expression.childExpressions.get(0).val / expression.childExpressions.get(1).val);
+                return new Val(expression.childExpressions.get(0).getVal() / expression.childExpressions.get(1).getVal());
             }
-        } else if (false && expression.getChild(0) instanceof Mul) {  // NOT WORKING!!!!! INFINITE LOOP
-            var firstChild = expression.getChild(1);
-            Expression divs = new Mul();
-            for (var child : expression.getChild(0).getChildren()) {
-                divs.addChild(new Div(child, firstChild).getOptimized());
-            }
-            divs = ExpressionFactory.optimize(divs);
-            return divs;
-        } else if (expression.getChild(0) instanceof Div) {
-            return new Div(expression.getChild(0).getChild(0), new Mul(expression.getChild(0).getChild(1), expression.getChild(1)).getOptimized()).getOptimized();
-        } else if (expression.getChild(1) instanceof Div) {
-            return new Mul(expression.getChild(0), new Div(expression.getChild(1), expression.getChild(0))).getOptimized();
-        } else if (expression.getChild(0) instanceof Pow && expression.getChild(0).getChild(0).equals(expression.getChild(1))) {
+        } else if (level > 0 && expression.getChild(0) instanceof Div) {
+            return new Div(expression.getChild(0).getChild(0), new Mul(expression.getChild(0).getChild(1), expression.getChild(1)).getOptimized(level)).getOptimized(level);
+        } else if (level > 0 && expression.getChild(1) instanceof Div) {
+            return new Mul(expression.getChild(0), new Div(expression.getChild(1), expression.getChild(0))).getOptimized(level);
+        } else if (level > 1 && expression.getChild(0) instanceof Pow && expression.getChild(0).getChild(0).equals(expression.getChild(1))) {
             expression.getChild(0).removeChild(0);
-            return new Pow(expression.getChild(1), new Sum(new Mul().addChildren(expression.getChild(0).getChildren()), new Val(-1)).getOptimized()).getOptimized();
-        }  else if (expression.childExpressions.get(1).type == Type.VALUE) {
+            return new Pow(expression.getChild(1), new Sum(new Mul().addChildren(expression.getChild(0).getChildren()), new Val(-1)).getOptimized(level)).getOptimized(level);
+        }  else if (level > 0 && expression.childExpressions.get(1).type == Type.VALUE) {
             if (expression.childExpressions.get(1).val == 1) {
                 return expression.childExpressions.get(0);
             } else if (expression.childExpressions.get(1).val == -1) {

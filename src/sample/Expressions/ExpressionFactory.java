@@ -2,12 +2,14 @@ package sample.Expressions;
 
 import sample.Main;
 import sample.Pair;
+import sample.UserSettings;
 import sample.WrongExpressionException;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static sample.WrongExpressionException.Type.INCORRECT_BRACKETS;
+import static sample.WrongExpressionException.Type.OTHER;
 
 public class ExpressionFactory {
 
@@ -30,7 +32,7 @@ public class ExpressionFactory {
         }
     }*/
 
-    public static ArrayList<Expression> getExpressionTree(String inputString, ArrayList<Expression> vars) {
+    public static ArrayList<Expression> getExpressionTree(String inputString, ArrayList<Expression> vars, UserSettings userSettings) {
         if (vars == null)
             vars = new ArrayList<>();
         ArrayList<Expression> expressions = new ArrayList<>();
@@ -136,7 +138,7 @@ public class ExpressionFactory {
 
         try {
             System.out.println(expressions.get(i));
-            expressions.set(i, ExpressionFactory.optimize(ExpressionFactory.open(expressions.get(i))));
+            expressions.set(i, expressions.get(i));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -169,7 +171,8 @@ public class ExpressionFactory {
                             argParts.add(currentArg);
                         } else if (currentArg.type == Expression.Type.RIGHT_BRACKET) {
                             brackets--;
-                            argParts.add(currentArg);
+                            if (brackets > 0)
+                                argParts.add(currentArg);
                         } else {
                             argParts.add(currentArg);
                         }
@@ -186,10 +189,6 @@ public class ExpressionFactory {
                     firstArg = false;
                 } else {
                     if (argParts.size() > 2) {
-                        if (argParts.get(0).type == Expression.Type.LEFT_BRACKET && argParts.get(argParts.size() - 1).type == Expression.Type.RIGHT_BRACKET) {
-                            argParts.remove(0);
-                            argParts.remove(argParts.size() - 1);
-                        }
 
                         var poly = getExpressionTree(argParts);
                         argParts.clear();
@@ -440,11 +439,12 @@ public class ExpressionFactory {
                                 if (s.length() > 1 && Character.isDigit(s.charAt(1))){
                                         StringBuilder dig = new StringBuilder();
                                         s = s.substring(1);
-                                        while (Character.isDigit(s.charAt(0))) {
+                                        while (Character.isDigit(s.charAt(0)) || s.charAt(0) == '.') {
                                             dig.append(s.charAt(0));
                                             s = s.substring(1);
                                         }
                                         addExpression(expressions, new Val(-Double.parseDouble(dig.toString())));
+                                        continue;
                                 } else
                                     addExpression(expressions, new Mul(new Val(-1)));
                             } else {
@@ -624,11 +624,16 @@ public class ExpressionFactory {
             return mainExpression;
         }
     */
-    public static Expression getPolynom(ArrayList<Expression> points) {
+    public static Expression getPolynom(ArrayList<Expression> points) throws WrongExpressionException {
         boolean varIsUsed = false;
-        String varsToUse[] = {"x", "t", "p", "y", "u", "polynom_argument"};
+        String varsToUse[] = {"x", "t","p", "u", "v", "q", "polynomArgument", "anotherPolynomArgument", "OneMorePolynomArgument"};
         ArrayList<String> usedVars = new ArrayList<>();
         for (Expression point : points) {
+            for (var point2 : points) {
+                if (point != point2 && point.getChild(0).equals(point2.getChild(0))) {
+                    throw new WrongExpressionException(OTHER, "Incorrect polynom points");
+                }
+            }
             usedVars.addAll(point.getVars());
         }
         usedVars = (ArrayList<String>) usedVars.stream().distinct().collect(Collectors.toList());
@@ -644,8 +649,7 @@ public class ExpressionFactory {
                 return getPolynom(points, varsToUse[i]);
             }
         }
-        Main.showException("Consider using different var names");
-        return null;
+        throw new WrongExpressionException(OTHER, "Consider using different var names");
     }
 
     public static Expression getPolynom(ArrayList<Expression> points, String polynomVar) {
@@ -763,38 +767,64 @@ public class ExpressionFactory {
         return getSeries(expression, 0, values.size() - 1, 1, var, values, operation);
     }
 
-    public static Expression optimize(Expression expression) {
-        if (false)
-            return expression;
+    public static Expression optimize(Expression expression, UserSettings userSettings) {
+        var expression1 = expression;
+        for (int i = 0; i <= userSettings.getOptimizationLevel(); i++)
+         expression1 =  optimize(open(expression1), userSettings, i, userSettings.needExtraOptimization());
+        return expression1;
+    }
+
+    private static Expression optimize(Expression expression, UserSettings userSettings, int level, boolean extra) {
+
         int ops = expression.getExpressionCount(0);
         int depth = expression.getMaxDepth(0);
-        int derivatives = expression.getChildren(Expression.Type.DERIVATIVE, new HashSet<>()).size();
+        int derivatives = expression.getChildren(Expression.Type.DERIVATIVE, new HashSet<>()).size() + (expression instanceof Derivative ? 1 : 0);
         int depth1 = 0;
         int ops1 = 0;
         int derivatives1 = 0;
-        try {
-            Expression expression1 = expression.getOptimized();
+        Expression toReturn = null;
+
+            Expression expression1 = expression.getOptimized(level);
             ops1 = expression1.getExpressionCount(0);
             depth1 = expression1.getMaxDepth(0);
-            derivatives1 = expression1.getChildren(Expression.Type.DERIVATIVE, new HashSet<>()).size();
+            derivatives1 = expression1.getChildren(Expression.Type.DERIVATIVE, new HashSet<>()).size() + (expression1 instanceof Derivative ? 1 : 0);
             if (ops1 < ops || depth1 < depth || derivatives1 < derivatives) {
-                return optimize(expression1);
+                return optimize(expression1, userSettings, level, extra);
             } else if (ops == ops1 && depth == depth1) {
-                return expression1;
+                toReturn = expression1;
+                ops = ops1;
+                derivatives = derivatives1;
+                depth = depth1;
             } else {
-                return expression;
+                toReturn = expression;
             }
-        } catch (CloneNotSupportedException e) {
-            return null;
+
+        if (extra) {
+            var extraExpression = optimize(getExpressionTree(toReturn.toString(), userSettings.getExpressions(), userSettings).get(0), userSettings, level, false);
+            ops1 = extraExpression.getExpressionCount(0);
+            depth1 = extraExpression.getMaxDepth(0);
+            derivatives1 = extraExpression.getChildren(Expression.Type.DERIVATIVE, new HashSet<>()).size();
+            if (ops1 < ops || depth1 < depth || derivatives1 < derivatives) {
+                return optimize(extraExpression, userSettings, level, extra);
+            } else if (ops == ops1 && depth == depth1) {
+                return extraExpression;
+            } else {
+                return toReturn;
+            }
         }
+
+            return toReturn;
+
     }
+
 
     public static Expression open(Expression expression) {
 
-        int ops = expression.getMaxDepth(0);
+        int depth = expression.getMaxDepth(0);
+        int ops = expression.getExpressionCount(0);
         try {
             Expression expression1 = expression.getOpen();
-            if (expression1.getMaxDepth(0) < ops) {
+            if (expression1.getMaxDepth(0) < depth || expression1.getExpressionCount(0) > ops) {
                 return open(expression1);
             } else {
                 System.out.println("OPEN:");

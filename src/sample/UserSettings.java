@@ -7,11 +7,26 @@ import java.util.*;
 
 public class UserSettings {
     private ArrayList<String> defaultExpressions;
-    ArrayList <Expression> expressions;
+
+    public ArrayList<Expression> getExpressions() {
+        return expressions;
+    }
+
+    public ArrayList <Expression> expressions;
     double fromX;
     double toX;
     int precision;
-    int optimizationLevel = 0;
+
+    public int getOptimizationLevel() {
+        return optimizationLevel;
+    }
+
+    public boolean needExtraOptimization() {
+        return extraOptimization;
+    }
+
+    int optimizationLevel = 1;
+    boolean extraOptimization = false;
 
     public UserSettings(String defaultExpressions) {
 
@@ -64,7 +79,7 @@ public class UserSettings {
     private void updateExpressions() {
         expressions = new ArrayList<>();
         for (var def : defaultExpressions) {
-                ExpressionFactory.getExpressionTree(def, expressions);
+                ExpressionFactory.getExpressionTree(def, expressions, this);
         }
         for (var i = expressions.size()-1; i > 0; i--) {
             for (var j = 0; j < i; j++)

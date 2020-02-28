@@ -16,8 +16,9 @@ public class Mul extends Expression {
     }
 
     public Mul(Expression... expressions) {
-        super(0, "Mul", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT ,20, 2, null, expressions);
+        super(0, "Mul", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT, 20, 2, null, expressions);
     }
+
     public Mul() {
         super(0, "Mul", Type.FUNCTION, ArgumentPosition.LEFT_AND_RIGHT, 20, 2, null);
     }
@@ -61,73 +62,74 @@ public class Mul extends Expression {
     }
 
     @Override
-    public Expression getOptimized() throws CloneNotSupportedException{
-        Expression expression = clone();
-        if (expression.getVars().isEmpty()) {
-            return new Val(getVal());
-        }
+    public Expression getOptimized(int level) {
+        Expression expression = super.getOptimized(level);
+        if (expression.type == Type.VALUE)
+            return expression;
+
         expression.childExpressions = new ArrayList<>();
         double mul = 1;
         ArrayList<Expression> denoms = new ArrayList<>();
         for (var child : childExpressions) {
-            if (child instanceof Mul && child.priority == priority) {
-                expression.childExpressions.addAll(child.clone().getChildren());
+            if (level > 0 && child instanceof Mul && child.priority == priority) {
+                expression.childExpressions.addAll(child.getClone().getChildren());
             } else if (child.getVars().isEmpty()) {
                 mul *= child.getVal(new ArrayList<>());
                 if (mul == 0)
                     return new Val(0);
-            } else if (child instanceof Div) {
-                expression.addChild(child.getChild(0).getOptimized());
-                denoms.add(child.getChild(1).getOptimized());
+            } else if (level > 0 && child instanceof Div) {
+                expression.addChild(child.getChild(0).getOptimized(level));
+                denoms.add(child.getChild(1).getOptimized(level));
             } else {
-                expression.addChild(child.getOptimized());
+                expression.addChild(child.getOptimized(level));
             }
         }
         if (mul != 1)
             expression.addChild(new Val(mul));
 
-        ArrayList<Expression> repeats = new ArrayList<>();
-        ArrayList<Expression> powers = new ArrayList<>();
-        for (var i = 0; i < expression.childExpressions.size(); i++) {
-            var child = expression.childExpressions.get(i);
-            if (child.getVars().isEmpty() && child.getVal() == 0)
-                return new Val(0);
-            repeats.clear();
-            powers.clear();
-            for (var j = i + 1; j < expression.childExpressions.size(); j++) {
-                var child2 = expression.childExpressions.get(j);
-                if (child.equals(child2)) {
-                    repeats.add(child2);
-                } else if (child2 instanceof Pow  && child.equals(child2.getChild(0))) {
-                    powers.add(child2);
+        if (level > 0) {
+            ArrayList<Expression> repeats = new ArrayList<>();
+            ArrayList<Expression> powers = new ArrayList<>();
+            for (var i = 0; i < expression.childExpressions.size(); i++) {
+                var child = expression.childExpressions.get(i);
+                if (child.getVars().isEmpty() && child.getVal() == 0)
+                    return new Val(0);
+                repeats.clear();
+                powers.clear();
+                for (var j = i + 1; j < expression.childExpressions.size(); j++) {
+                    var child2 = expression.childExpressions.get(j);
+                    if (child.equals(child2)) {
+                        repeats.add(child2);
+                    } else if (child2 instanceof Pow && child.equals(child2.getChild(0))) {
+                        powers.add(child2);
+                    }
+                }
+                if (!powers.isEmpty()) {
+                    var sum = new Sum();
+                    for (var pow : powers)
+                        if (pow.getChildren().size() == 2)
+                            sum.addChild(pow.getChild(1).getOptimized(level));
+                    if (!repeats.isEmpty()) {
+                        sum.addChild(new Val(repeats.size() + 1));
+                    }
+                    expression.removeChildren(powers);
+                    expression.removeChildren(repeats);
+                    expression.removeChild(child);
+                    expression.addChild(new Pow(child, sum.getOptimized(level)));
+                    i--;
+                } else if (!repeats.isEmpty()) {
+                    var pow = new Pow(child, new Val(repeats.size() + 1));
+                    expression.removeChildren(repeats);
+                    expression.removeChild(child);
+                    expression.addChild(pow);
+                    i--;
                 }
             }
-            if (!powers.isEmpty()) {
-                var sum = new Sum();
-                for (var pow : powers)
-                    if (pow.getChildren().size() == 2)
-                        sum.addChild(pow.getChild(1).getOptimized());
-                if (!repeats.isEmpty()) {
-                    sum.addChild(new Val(repeats.size() + 1));
-                }
-                expression.removeChildren(powers);
-                expression.removeChildren(repeats);
-                expression.removeChild(child);
-                expression.addChild(new Pow(child, sum.getOptimized()));
-                i--;
-            } else if (!repeats.isEmpty()) {
-                var pow = new Pow(child, new Val(repeats.size() + 1));
-                expression.removeChildren(repeats);
-                expression.removeChild(child);
-                expression.addChild(pow);
-                i--;
-            }
-
         }
         if (!denoms.isEmpty()) {
             if (expression.getChildren().size() == 1)
-                return new Div(expression.getChild(0),  new Mul().addChildren(denoms).getOptimized()).getOptimized();
-            return new Div(expression,  new Mul().addChildren(denoms).getOptimized()).getOptimized();
+                return new Div(expression.getChild(0), new Mul().addChildren(denoms).getOptimized(level)).getOptimized(level);
+            return new Div(expression, new Mul().addChildren(denoms).getOptimized(level)).getOptimized(level);
         }
 
         if (expression.childExpressions.size() == 1)
@@ -148,7 +150,7 @@ public class Mul extends Expression {
             } else
                 expression.addChild(child.getOpen());
         }
-/*        for (var child : expression.childExpressions) {
+        for (var child : expression.childExpressions) {
             if (child instanceof Sum) {
                 Expression sum = new Sum();
                 expression.removeChild(child);
@@ -157,7 +159,7 @@ public class Mul extends Expression {
                 return sum.getOpen();
             }
 
-        }*/
+        }
 
         return expression;
     }

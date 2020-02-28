@@ -1,6 +1,7 @@
 package sample.Expressions;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 
 public class Sum extends Expression {
     public Sum(Expression... expressions) {
@@ -37,49 +38,53 @@ public class Sum extends Expression {
     }
 
     @Override
-    public Expression getOptimized() throws CloneNotSupportedException {
-        Expression expression = clone();
+    public Expression getOptimized(int level) {
+        Expression expression = super.getOptimized(level);
+        if (expression.type == Type.VALUE)
+            return expression;
         expression.childExpressions = new ArrayList<>();
         double sum = 0;
         ArrayList<Expression> subs = new ArrayList<>();
         for (var child : childExpressions) {
-            if (child.priority == priority && child instanceof Sum) {
-                expression.childExpressions.addAll(child.clone().getChildren());
-            } else if (child.priority == priority && child instanceof Sub && child.getChildren().size() == 2) {
+            if (level > 0 && child.priority == priority && child instanceof Sum) {
+                expression.childExpressions.addAll(child.getClone().getChildren());
+            } else if (level > 0 && child.priority == priority && child instanceof Sub && child.getChildren().size() == 2) {
                 expression.childExpressions.add(child.getChild(0));
                 subs.add(child.getChild(1));
             } else if (child.getVars().isEmpty()) {
                 sum += child.getVal();
             } else
-                expression.addChild(child.getOptimized());
+                expression.addChild(child.getOptimized(level));
         }
-
         if (sum != 0)
             expression.addChild(new Val(sum));
+
+
         ArrayList<Expression> repeats = new ArrayList<>();
         ArrayList<Expression> muls = new ArrayList<>();
 
-        for (var i = 0; i < expression.childExpressions.size(); i++) {
+        if (level > 0) {
+            for (var i = 0; i < expression.childExpressions.size(); i++) {
 
-            for (var j = i + 1; j < expression.childExpressions.size(); j++) {
-                if (expression.childExpressions.get(i).equals(expression.childExpressions.get(j))) {
-                    repeats.add(expression.childExpressions.get(j));
+                for (var j = i + 1; j < expression.childExpressions.size(); j++) {
+                    if (expression.childExpressions.get(i).equals(expression.childExpressions.get(j))) {
+                        repeats.add(expression.childExpressions.get(j));
+                    }
+                }
+                if (repeats.size() > 0) {
+                    var mul = new Mul(new Val(repeats.size() + 1), expression.childExpressions.get(i).getClone());
+                    muls.add(mul);
+                    repeats.add(expression.childExpressions.get(i));
+                    expression.childExpressions.removeAll(repeats);
+                    repeats.clear();
+                    i--;
                 }
             }
-            if (repeats.size() > 0) {
-                var mul = new Mul(new Val(repeats.size() + 1), expression.childExpressions.get(i).clone());
-                muls.add(mul);
-                repeats.add(expression.childExpressions.get(i));
-                expression.childExpressions.removeAll(repeats);
-                repeats.clear();
-                i--;
-            }
+            expression.addChildren(muls);
         }
 
-        expression.addChildren(muls);
-
         if (!subs.isEmpty()) {
-            return ExpressionFactory.optimize(new Sub(expression, new Sum().addChildren(subs).getOptimized()));
+            return new Sub(expression, new Sum().addChildren(subs).getOptimized(level)).getOptimized(level);
         }
 
         if (expression.childExpressions.size() == 1)
@@ -93,7 +98,7 @@ public class Sum extends Expression {
         if (getVars().isEmpty()) {
             return new Val(getVal());
         }
-        Expression expression = super.getOpen();
+        Expression expression = getClone();
         expression.childExpressions = new ArrayList<>();
         for (var child : childExpressions) {
             if (child.priority == priority && child instanceof Sum) {
@@ -109,6 +114,11 @@ public class Sum extends Expression {
 
         StringBuilder sb = new StringBuilder();
         for (var child : childExpressions) {
+            if (child.type == Type.VALUE && child.getVal() < 0) {
+                sb.append("-");
+                sb.append(-child.getVal());
+                continue;
+            }
             sb.append("+");
             if (child.priority > priority)
                 sb.append("(").append(child.toString()).append(")");
